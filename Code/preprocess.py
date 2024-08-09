@@ -21,3 +21,9 @@ book_texts["sentences"] = book_texts["text"].apply(lambda x: tk.sent_tokenize(x)
 print(book_texts.head(15))
 
 book_texts.to_csv("Data/harry_potter_books_preprocessed.csv", index=False)
+
+# create a list of all sentences, without book or chapter affiliation
+all_sentences = [sentence for sentences in book_texts["sentences"] for sentence in sentences]
+all_sentences_df = pd.DataFrame(all_sentences, columns=["sentence"])
+
+all_sentences_df.to_csv("Data/harry_potter_sentences.csv", index=False)
