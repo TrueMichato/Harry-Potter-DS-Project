@@ -57,7 +57,8 @@ def process_other_names(text):
 # Apply the function to the 'Other Names' column
 df['Other Names'] = df['Other Names'].apply(process_other_names)
 
-# Save the updated DataFrame to a new CSV file
-df.to_csv('updated_characters_file.csv', index=False)
 
-print("Completed processing the Other Names.")
+df['Id'] = df.index
+
+# Save the DataFrame back to a CSV file
+df.to_csv('character_names.csv', index=False)
