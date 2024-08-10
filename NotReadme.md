@@ -19,4 +19,7 @@ We want:
 4. We maybe want to define a directional connection - we could use that for pagerank later on. 
 
 ## 4. [Community Detection/ Page Rank](#4-community-detection-page-rank)
-If we 
+
+
+first attempt to plot character connections:
+![img.png](img.png)
