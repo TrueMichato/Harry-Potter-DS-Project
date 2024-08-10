@@ -4,6 +4,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import re
 import pickle
+import numpy as np
+import matplotlib.colors as mcolors
 
 
 def check_special_family_names(name, sentence):
@@ -94,7 +96,89 @@ def remove_characters_below_threshold(dict_names_id, df_sentences, threshold=2):
     return filtered_dict
 
 
-def plot_edge_size_connections(pair_counts, dict_names_id, threshold_count=3):
+# def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3):
+#     G = nx.Graph()
+#
+#     # Add nodes and weighted edges to the graph
+#     for pair, count in pair_counts.items():
+#         if count < threshold_count:
+#             continue
+#         name1 = dict_names_id[pair[0]][0]
+#         name2 = dict_names_id[pair[1]][0]
+#         G = check_add_node(G, name1)
+#         G = check_add_node(G, name2)
+#         if not G.has_edge(name1, name2):
+#             G.add_edge(name1, name2, weight=count)
+#
+#     # Sort nodes alphabetically
+#     sorted_nodes = sorted(G.nodes())
+#
+#     # Apply circular layout with sorted nodes
+#     pos = nx.circular_layout(G)
+#     pos = {node: pos[node] for node in sorted_nodes}  # Maintain circular layout but with sorted order
+#
+#     plt.figure(figsize=(20, 20))
+#
+#     # Extract edge weights
+#     edges = G.edges(data=True)
+#     weights = [edge[2]['weight'] for edge in edges]
+#
+#     # Draw the graph with weighted edges
+#     nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue",
+#             font_size=10, font_weight="bold", edge_color="gray",
+#             font_color='black', edgecolors="black", linewidths=1, alpha=0.7,
+#             width=[weight * 0.1 for weight in weights])  # Edge thickness proportional to weight
+#
+#     plt.show()
+
+
+def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3):
+    G = nx.Graph()
+
+    # Add nodes and weighted edges to the graph
+    for pair, count in pair_counts.items():
+        if count < threshold_count:
+            continue
+        name1 = dict_names_id[pair[0]][0]
+        name2 = dict_names_id[pair[1]][0]
+        G = check_add_node(G, name1)
+        G = check_add_node(G, name2)
+        if not G.has_edge(name1, name2):
+            G.add_edge(name1, name2, weight=count)
+
+    # Sort nodes alphabetically
+    sorted_nodes = sorted(G.nodes())
+
+    # Calculate circular layout positions for nodes in alphabetical order
+    num_nodes = len(sorted_nodes)
+    angle_step = 2 * np.pi / num_nodes
+    pos = {node: (np.cos(i * angle_step), np.sin(i * angle_step)) for i, node in enumerate(sorted_nodes)}
+
+    plt.figure(figsize=(20, 20))
+
+    # Extract edge weights
+    edges = G.edges(data=True)
+    weights = [edge[2]['weight'] for edge in edges]
+
+    # Normalize the weights for color mapping and edge width
+    max_weight = max(weights) if weights else 1
+    min_weight = min(weights) if weights else 1
+    norm = mcolors.Normalize(vmin=min_weight, vmax=max_weight)
+
+    # Use the updated method to get the colormap
+    cmap = plt.colormaps.get_cmap('Greys')
+    edge_colors = [cmap(norm(weight) * 0.7 + 0.3) for weight in weights]  # Avoid very light colors
+    edge_widths = [norm(weight) * 5 for weight in weights]  # Scale edge width by weight
+
+    # Draw the graph with weighted edges
+    nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue",
+            font_size=10, font_weight="bold", edge_color=edge_colors,
+            font_color='black', edgecolors="black", linewidths=1, alpha=0.7,
+            width=edge_widths)  # Edge width proportional to weight
+
+    plt.show()
+
+
 
 
 
@@ -132,9 +216,9 @@ def main():
 
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
-    plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-
-    plot_edge_size_connections(pair_counts, dict_names_id, threshold_count=10)
+    # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
+    # todo: fix the plotting of the weight by edge color
+    plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
 
     # todo: Louvain for community detection for the plot
     # pagerank
