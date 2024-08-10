@@ -111,8 +111,12 @@ def main():
     dict_names_id = create_dict_names_id(df_characters)
     dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=14)
     pair_counts = create_dict_connections(df_sentences, dict_names_id)
+
     # print(pair_counts)
     plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
+
+    # todo: Louvain for community detection for the plot
+    # pagerank
 
 if __name__ == "__main__":
     main()

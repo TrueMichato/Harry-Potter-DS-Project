@@ -34,3 +34,6 @@ adding threshold for characters that appears at least 14 times in the book
 and for sentences that appear at least 10 times:
 ![img_3.png](img_3.png)
 
+after filtering for special family names (weasley, potter, malfoy):
+![img_4.png](img_4.png)
+
