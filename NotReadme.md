@@ -23,3 +23,14 @@ We want:
 
 first attempt to plot character connections:
 ![img.png](img.png)
+
+second attempt with different layout and...:
+![img_1.png](img_1.png)
+
+threshold for appearance in a sentence above 3 times:
+![img_2.png](img_2.png)
+
+adding threshold for characters that appears at least 14 times in the book
+and for sentences that appear at least 10 times:
+![img_3.png](img_3.png)
+
