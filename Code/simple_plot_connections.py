@@ -4,22 +4,61 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import re
 
+
+# def create_dict_connections(df_sentences, dict_names_id):
+#     def find_character_id_pairs(sentence, dict_names_id):
+#         present_ids = []
+#         for char_id, names in dict_names_id.items():
+#             for name in names:
+#                 pattern = r'\b' + re.escape(name) + r'\b'
+#                 if re.search(pattern, sentence):
+#                     present_ids.append(char_id)
+#                     break  # Break after the first match to avoid double counting
+#         return list(set(combinations(sorted(present_ids), 2)))
+#
+#     df_sentences['character_pairs'] = df_sentences['sentence'].apply(lambda x: find_character_id_pairs(x, dict_names_id))
+#     df_exploded = df_sentences.explode('character_pairs').dropna(subset=['character_pairs'])
+#
+#     pair_counts = df_exploded['character_pairs'].value_counts().to_dict()
+#     return pair_counts
+
+def check_special_family_names(name, sentence):
+    # making sure it won't catch the wrong family member cause this family names are associated
+    # with the main characters
+    pattern = r'\b(\w+)\b\s+' + re.escape(name) + r'\b'
+    match = re.search(pattern, sentence)
+    if match:
+        prev_word = match.group(1)
+        if name == "Potter":
+            return prev_word in ["Mr.", "Harry"]
+        if name == "Weasley":
+            return prev_word in ["Ron", "Ronald"]
+        if name == "Malfoy":
+            return prev_word in ["Mr.", "Draco"]
+    return True
+
+
 def create_dict_connections(df_sentences, dict_names_id):
-    def find_character_id_pairs(sentence, dict_names_id):
-        present_ids = []
-        for char_id, names in dict_names_id.items():
-            for name in names:
-                pattern = r'\b' + re.escape(name) + r'\b'
-                if re.search(pattern, sentence):
-                    present_ids.append(char_id)
-                    break  # Break after the first match to avoid double counting
-        return list(set(combinations(sorted(present_ids), 2)))
+        def find_character_id_pairs(sentence, dict_names_id):
+            present_ids = []
+            for char_id, names in dict_names_id.items():
+                for name in names:
+                    pattern = r'\b' + re.escape(name) + r'\b'
+                    match = re.search(pattern, sentence)
+                    if match:
+                        if name in ["Potter", "Weasley", "Malfoy"]:
+                            if not check_special_family_names(name, sentence):
+                                break
+                        present_ids.append(char_id)
+                        break  # Break after the first match to avoid double counting
+            return list(set(combinations(sorted(present_ids), 2)))
 
-    df_sentences['character_pairs'] = df_sentences['sentence'].apply(lambda x: find_character_id_pairs(x, dict_names_id))
-    df_exploded = df_sentences.explode('character_pairs').dropna(subset=['character_pairs'])
+        df_sentences['character_pairs'] = df_sentences['sentence'].apply(
+            lambda x: find_character_id_pairs(x, dict_names_id))
+        df_exploded = df_sentences.explode('character_pairs').dropna(subset=['character_pairs'])
 
-    pair_counts = df_exploded['character_pairs'].value_counts().to_dict()
-    return pair_counts
+        pair_counts = df_exploded['character_pairs'].value_counts().to_dict()
+        return pair_counts
 
 def create_dict_names_id(df_characters):
     dict_id_names = {}
