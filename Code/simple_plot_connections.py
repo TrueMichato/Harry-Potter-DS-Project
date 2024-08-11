@@ -130,17 +130,7 @@ def generate_unique_positions(nodes, width=1, height=1, min_dist=0.1):
 
 
 def plot_try(pair_counts, dict_names_id, threshold_count):
-    # G = create_weighted_graph(pair_counts, dict_names_id, threshold_count)
-    G = nx.Graph()
-    for pair, count in pair_counts.items():
-        if count < threshold_count:
-            continue
-        name1 = dict_names_id[pair[0]][0]
-        name2 = dict_names_id[pair[1]][0]
-        G = check_add_node(G, name1)
-        G = check_add_node(G, name2)
-        if not G.has_edge(name1, name2):
-            G.add_edge(name1, name2, weight=count)
+    G = create_weighted_graph(pair_counts, dict_names_id, threshold_count)
 
     # Make the graph sparse
     G = make_graph_sparse(G, fraction=0.2)
@@ -200,8 +190,7 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     plt.axis('off')
     plt.show()
 
-    return G
-
+    return G, pos
 
 
 def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min_color=0.3, colormap_name="Oranges", power_factor=2):
@@ -313,10 +302,10 @@ def main():
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # todo: fix the plotting of the weight by edge color
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
-    G = plot_try(pair_counts, dict_names_id, threshold_count=15)
+    G, pos = plot_try(pair_counts, dict_names_id, threshold_count=15)
 
     # Plotting Louvain communities
-    # plot_louvain_communities(G)
+    plot_louvain_communities(G, pos)
 
 
 if __name__ == "__main__":
