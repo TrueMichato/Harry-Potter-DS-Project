@@ -85,7 +85,7 @@ def solve_long_name_issue(text: str, names: list) -> str:
     for name in names:
         if len(name.split(" ")) >= 2:
             new_name = "__".join(name.split(" "))
-            print(f"{name=} -> {new_name=}")
+            # print(f"{name=} -> {new_name=}")
             text = re.sub(rf"\b{name}\b", new_name, text)
     return text
 
@@ -131,7 +131,8 @@ def put_together(words: list) -> str:
     )
 
 
-def preprocess_text(text: str) -> str:
+def preprocess_text(text: str, chapter: int, book: str) -> str:
+    print(f"preprocessing {book=}, {chapter=}")
     text = solve_couple(text)
     text = solve_mrs_mr_issue(text)
     text = solve_long_name_issue(text, character_names)
@@ -152,7 +153,7 @@ book_texts = (
 book_texts["chapter"] = book_texts["chapter"].apply(lambda x: int(x.split("-")[1]))
 book_texts = book_texts.sort_values(by=["book", "chapter"])
 book_texts = book_texts.reset_index(drop=True)
-book_texts["text"] = book_texts["text"].apply(lambda x: preprocess_text(x))
+book_texts["text"] = book_texts.apply(lambda row: preprocess_text(row["text"], row["chapter"], row["book"]), axis=1)
 # # get chapter name using a regex
 # #  book_texts["chapter name"] = book_texts["text"].str.extract(r'^([A-Z ]+)\s\s')
 # # # make chapter name a string

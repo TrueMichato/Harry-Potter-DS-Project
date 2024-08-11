@@ -5,7 +5,9 @@ we begun by discussing what is the best way to preprocess our data. We decided t
 1. Group by chapter to create data for whole chapters (currently divided aribtrarely)
 2. Break down data to sentences, which will make it easier to later identify connections between characters
 3. Create files for both sentences only, and sentences by book and characters. This will allow us to use the data in different ways later on.
-We might encounter an issue with cases where a character is mentioned by a title (e.g. "the king") or a pronoun (e.g. "he"). We will have to decide how to handle these cases. We also have some issues related to surenames - for example, Weasly is a name for 7 distinct characters, as well as a general name for the whole family. We might tackle that problem by checking for a name in the sentence before and after.
+We might encounter an issue with cases where a character is mentioned by a title (e.g. "the king") or a pronoun (e.g. "he"). To solve that we used a coreference resolution library to identify the actual character being mentioned. We also used the oppertunity to augment the data with the following changes:
+* Make couple names clearer to distinguish for the code (e.g. "Mr. and Mrs. Dursley" -> "Mr. Dursley and Mrs. Dursley")
+* Replace references to families with the family members (e.g. "Potters" -> "Harry Potter and James Potter and Lily Potter")
 
 ## 2. [Character Definition](#2-character-definition)
 Since we want to identify relationships between characters, we will have to define what (or who) a character is. We decided to use outside data (from [Harry Potter Dataset](https://www.kaggle.com/datasets/zez000/characters-in-harry-potter-books) on kaggle) as well as our own book knowledge (we are our own domain experts!) to define characters.
