@@ -237,7 +237,7 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     plt.show()
 
 
-def plot_louvain_communities(G, pos, colormap_name='spring'):
+def plot_louvain_communities(G, pos, colormap_name='tab10'):
     partition = community_louvain.best_partition(G, weight='weight')
 
     cmap = plt.colormaps[colormap_name]
@@ -269,7 +269,7 @@ def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
     return G
 
 
-def plot_leiden_communities_with_weights(G, pos, colormap_name='spring'):
+def plot_leiden_communities_with_weights(G, pos, colormap_name='tab10'):
     # Convert the NetworkX graph to an iGraph graph with edge weights
     # Ensure that the weights are floating point values
     edges = [(u, v, float(data['weight'])) for u, v, data in G.edges(data=True)]
@@ -362,13 +362,13 @@ def get_dict_names_id_from_pickle():
 
 def main():
     # todo: remove the pickle usage in the future
-    df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
-    df_characters = pd.read_csv(r"..\Data\character_names.csv")
-    dict_names_id = create_dict_names_id(df_characters)
-    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    save_dict_names_id(dict_names_id)
-    pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    save_pair_counts(pair_counts)
+    # df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
+    # df_characters = pd.read_csv(r"..\Data\character_names.csv")
+    # dict_names_id = create_dict_names_id(df_characters)
+    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    # save_dict_names_id(dict_names_id)
+    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    # save_pair_counts(pair_counts)
 
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
@@ -379,7 +379,7 @@ def main():
 
     plot_louvain_communities(G, pos)
     #
-    # plot_leiden_communities_with_weights(G, pos)
+    plot_leiden_communities_with_weights(G, pos)
 
     # plot_surprise_communities(G, pos)
 
