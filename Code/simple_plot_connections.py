@@ -90,14 +90,6 @@ def remove_characters_below_threshold(dict_names_id, df_sentences, threshold=2):
     return filtered_dict
 
 
-# def make_graph_sparse(G, fraction=0.5):
-#     edges = list(G.edges())
-#     num_edges_to_keep = int(len(edges) * fraction)
-#     edges_to_keep = random.sample(edges, num_edges_to_keep)
-#     G_sparse = nx.Graph()
-#     G_sparse.add_edges_from(edges_to_keep)
-#     return G_sparse
-
 def make_graph_sparse(G, fraction=0.5):
     # Get all edges with their attributes
     edges = list(G.edges(data=True))
@@ -186,6 +178,8 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     plt.axis('off')
     plt.show()
 
+    return G
+
 
 
 def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min_color=0.3, colormap_name="Oranges", power_factor=2):
@@ -228,12 +222,11 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     plt.show()
 
 
-def plot_louvain_communities(pair_counts, dict_names_id):
-    G = create_weighted_graph(pair_counts, dict_names_id, threshold_count=10)
+def plot_louvain_communities(G, colormap_name='viridis'):
     partition = community_louvain.best_partition(G, weight='weight')
 
     pos = nx.random_layout(G)
-    cmap = plt.get_cmap('viridis')
+    cmap = plt.colormaps[colormap_name]
     num_communities = len(set(partition.values()))
 
     fig, ax = plt.subplots(figsize=(20, 20))
@@ -298,10 +291,10 @@ def main():
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # todo: fix the plotting of the weight by edge color
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
-    # plot_try(pair_counts, dict_names_id, threshold_count=10)
+    G = plot_try(pair_counts, dict_names_id, threshold_count=10)
 
     # Plotting Louvain communities
-    plot_louvain_communities(pair_counts, dict_names_id)
+    plot_louvain_communities(G)
 
 
 
