@@ -9,6 +9,8 @@ import matplotlib.colors as mcolors
 import random
 import matplotlib.cm as cm
 import community as community_louvain
+import igraph as ig
+import leidenalg as la
 
 
 def check_special_family_names(name, sentence):
@@ -254,6 +256,47 @@ def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
     return G
 
 
+def plot_leiden_communities_with_weights(G, pos, colormap_name='spring'):
+    # Convert the NetworkX graph to an iGraph graph with edge weights
+    # Ensure that the weights are floating point values
+    edges = [(u, v, float(data['weight'])) for u, v, data in G.edges(data=True)]
+    G_ig = ig.Graph.TupleList(edges, directed=False, weights=True)
+
+    # Perform Leiden community detection using edge weights
+    partition = la.find_partition(G_ig, la.ModularityVertexPartition, weights=G_ig.es['weight'])
+
+    # Get the community membership of each node
+    membership = partition.membership
+
+    # Map the memberships back to the NetworkX nodes
+    node_communities = {node: membership[idx] for idx, node in enumerate(G.nodes())}
+
+    # Get the unique communities
+    num_communities = len(set(node_communities.values()))
+
+    # Prepare the colormap
+    cmap = plt.colormaps[colormap_name]
+
+    fig, ax = plt.subplots(figsize=(20, 20))
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    # Draw nodes with colors based on community membership
+    nx.draw_networkx_nodes(G, pos, node_color=[node_communities[node] for node in G.nodes()],
+                           node_size=3000, cmap=cmap, alpha=0.8)
+
+    # Draw edges
+    nx.draw_networkx_edges(G, pos, alpha=0.5)
+
+    # Draw labels
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+
+    plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected")
+    plt.show()
+
+    return node_communities
+
+
 def save_pair_counts(pair_counts):
     with open(r"..\Data\pair_counts.pkl", "wb") as f:
         pickle.dump(pair_counts, f)
@@ -293,8 +336,9 @@ def main():
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
     G, pos = plot_try(pair_counts, dict_names_id, threshold_count=10)
 
-    # Plotting Louvain communities
     plot_louvain_communities(G, pos)
+
+    plot_leiden_communities_with_weights(G, pos)
 
 
 
