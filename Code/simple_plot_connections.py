@@ -274,7 +274,6 @@ def get_dict_names_id_from_pickle():
         dict_names_id = pickle.load(f)
     return dict_names_id
 
-
 def main():
     # todo: remove the pickle usage in the future
     # df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
