@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.colors as mcolors
 import random
 import matplotlib.cm as cm
+import community as community_louvain
 
 
 def check_special_family_names(name, sentence):
@@ -67,16 +68,7 @@ def check_add_node(G, name):
 
 
 def plot_simple_connections(pair_counts, dict_names_id, threshold_count=3):
-    G = nx.Graph()
-    for pair, count in pair_counts.items():
-        if count < threshold_count:
-            continue
-        name1 = dict_names_id[pair[0]][0]
-        name2 = dict_names_id[pair[1]][0]
-        G = check_add_node(G, name1)
-        G = check_add_node(G, name2)
-        if not G.has_edge(name1, name2):
-            G.add_edge(name1, name2, weight=count)
+    G = create_weighted_graph(pair_counts, dict_names_id, threshold_count=10)
 
     pos = nx.circular_layout(G)
     plt.figure(figsize=(20, 20))
@@ -134,16 +126,7 @@ def generate_unique_positions(nodes, width=1, height=1, min_dist=0.1):
 
 
 def plot_try(pair_counts, dict_names_id, threshold_count):
-    G = nx.Graph()
-    for pair, count in pair_counts.items():
-        if count < threshold_count:
-            continue
-        name1 = dict_names_id[pair[0]][0]
-        name2 = dict_names_id[pair[1]][0]
-        G.add_node(name1)
-        G.add_node(name2)
-        if not G.has_edge(name1, name2):
-            G.add_edge(name1, name2, weight=count)
+    G = create_weighted_graph(pair_counts, dict_names_id, threshold_count)
 
     # Make the graph sparse
     G = make_graph_sparse(G, fraction=0.2)
@@ -195,65 +178,79 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     plt.axis('off')
     plt.show()
 
+    return G
 
-# def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min_color=0.3, colormap_name="Oranges",
-#                               power_factor=2):
-#     G = nx.Graph()
-#
-#     # Add nodes and weighted edges to the graph
-#     for pair, count in pair_counts.items():
-#         if count < threshold_count:
-#             continue
-#         name1 = dict_names_id[pair[0]][0]
-#         name2 = dict_names_id[pair[1]][0]
-#         G = check_add_node(G, name1)
-#         G = check_add_node(G, name2)
-#         if not G.has_edge(name1, name2):
-#             G.add_edge(name1, name2, weight=count)
-#
-#     # # Sort nodes alphabetically
-#     # sorted_nodes = sorted(G.nodes())
-#
-#     # Sort nodes by last name
-#     def get_last_name(full_name):
-#         return full_name.split()[-1]
-#
-#     sorted_nodes = sorted(G.nodes(), key=get_last_name)
-#
-#     # Calculate circular layout positions for nodes in alphabetical order
-#     num_nodes = len(sorted_nodes)
-#     angle_step = 2 * np.pi / num_nodes
-#     pos = {node: (np.cos(i * angle_step), np.sin(i * angle_step)) for i, node in enumerate(sorted_nodes)}
-#
-#     fig, ax = plt.subplots(figsize=(25, 25))
-#
-#     # Extract edge weights
-#     edges = G.edges(data=True)
-#     weights = [edge[2]['weight'] for edge in edges]
-#
-#     # Normalize the weights for color mapping
-#     max_weight = max(weights) if weights else 1
-#     min_weight = min(weights) if weights else 1
-#     norm = mcolors.Normalize(vmin=min_weight, vmax=max_weight)
-#
-#     # Apply a power transformation to increase contrast between colors
-#     cmap = plt.colormaps.get_cmap(colormap_name)
-#     edge_colors = [cmap(min_color + (norm(weight) ** power_factor) * (1 - min_color)) for weight in weights]
-#
-#     # Draw the graph with uniform edge width and higher contrast colors
-#     nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue",
-#             font_size=10, font_weight="bold", edge_color=edge_colors,
-#             font_color='black', edgecolors="black", linewidths=1, alpha=0.7,
-#             width=3, ax=ax)
-#
-#     # Create a scalar mappable for the color bar legend
-#     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-#     sm.set_array([])  # You need to set an array for the color bar, but it's not used here
-#     cbar = plt.colorbar(sm, ax=ax, shrink=0.8)  # Add the color bar and pass the ax object
-#     cbar.set_label('Edge Weight', rotation=270, labelpad=20)  # Label for the color bar
-#     cbar.ax.invert_yaxis()  # Optional: invert color bar to have lighter colors at the bottom
-#
-#     plt.show()
+
+
+def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min_color=0.3, colormap_name="Oranges", power_factor=2):
+    G = nx.Graph()
+    for pair, count in pair_counts.items():
+        if count < threshold_count:
+            continue
+        name1 = dict_names_id[pair[0]][0]
+        name2 = dict_names_id[pair[1]][0]
+        G = check_add_node(G, name1)
+        G = check_add_node(G, name2)
+        if not G.has_edge(name1, name2):
+            G.add_edge(name1, name2, weight=count)
+
+    pos = nx.random_layout(G)
+
+    fig, ax = plt.subplots(figsize=(25, 25))
+
+    edges = G.edges(data=True)
+    weights = [edge[2]['weight'] for edge in edges]
+
+    max_weight = max(weights) if weights else 1
+    min_weight = min(weights) if weights else 1
+    norm = mcolors.Normalize(vmin=min_weight, vmax=max_weight)
+
+    cmap = plt.colormaps.get_cmap(colormap_name)
+    edge_colors = [cmap(min_color + (norm(weight) ** power_factor) * (1 - min_color)) for weight in weights]
+
+    nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue",
+            font_size=10, font_weight="bold", edge_color=edge_colors,
+            font_color='black', edgecolors="black", linewidths=1, alpha=0.7,
+            width=3, ax=ax)
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax, shrink=0.8)
+    cbar.set_label('Edge Weight', rotation=270, labelpad=20)
+    cbar.ax.invert_yaxis()
+
+    plt.show()
+
+
+def plot_louvain_communities(G, colormap_name='viridis'):
+    partition = community_louvain.best_partition(G, weight='weight')
+
+    pos = nx.random_layout(G)
+    cmap = plt.colormaps[colormap_name]
+    num_communities = len(set(partition.values()))
+
+    fig, ax = plt.subplots(figsize=(20, 20))
+    nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=3000,
+                           cmap=cmap, node_color=list(partition.values()))
+    nx.draw_networkx_edges(G, pos, alpha=0.5)
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+
+    plt.title(f"Louvain Community Detection - {num_communities} Communities Detected")
+    plt.show()
+
+
+def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
+    G = nx.Graph()
+    for pair, count in pair_counts.items():
+        if count < threshold_count:
+            continue
+        name1 = dict_names_id[pair[0]][0]
+        name2 = dict_names_id[pair[1]][0]
+        G = check_add_node(G, name1)
+        G = check_add_node(G, name2)
+        if not G.has_edge(name1, name2):
+            G.add_edge(name1, name2, weight=count)
+    return G
 
 
 def save_pair_counts(pair_counts):
@@ -290,12 +287,15 @@ def main():
 
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
+
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # todo: fix the plotting of the weight by edge color
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
-    plot_try(pair_counts, dict_names_id, threshold_count=5)
-    # todo: Louvain for community detection for the plot
-    # pagerank
+    G = plot_try(pair_counts, dict_names_id, threshold_count=10)
+
+    # Plotting Louvain communities
+    plot_louvain_communities(G)
+
 
 
 if __name__ == "__main__":
