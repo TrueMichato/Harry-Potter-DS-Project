@@ -37,3 +37,9 @@ and for sentences that appear at least 10 times:
 after filtering for special family names (weasley, potter, malfoy):
 ![img_4.png](img_4.png)
 
+
+try weighted graph by color:
+![img_5.png](img_5.png)
+
+
+
