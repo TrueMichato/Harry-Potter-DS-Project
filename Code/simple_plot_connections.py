@@ -443,6 +443,5 @@ def main():
 
     # plot_surprise_communities(G, pos)
 
-
 if __name__ == "__main__":
     main()
