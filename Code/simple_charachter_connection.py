@@ -17,6 +17,7 @@ def create_dict_connections(df_sentences, dict_names_id):
     pair_counts = df_exploded['character_pairs'].value_counts().to_dict()
     return pair_counts
 
+
 def create_dict_names_id(df_characters):
     dict_id_names = {}
     for _, row in df_characters.iterrows():
@@ -28,8 +29,8 @@ def create_dict_names_id(df_characters):
     return dict_id_names
 
 def main():
-    df_sentences = pd.read_csv(r"C:\Users\mikal\Documents\CSMSE\needle\final_project\Data\harry_potter_sentences.csv")
-    df_characters = pd.read_csv(r"C:\Users\mikal\Documents\CSMSE\needle\final_project\Data\character_names.csv")
+    df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
+    df_characters = pd.read_csv(r"..\Data\character_names.csv")
     dict_names_id = create_dict_names_id(df_characters)
     dict_connections = create_dict_connections(df_sentences, dict_names_id)
     print(dict_connections)
