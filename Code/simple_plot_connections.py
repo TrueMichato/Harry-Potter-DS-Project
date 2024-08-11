@@ -151,7 +151,7 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     min_value = min(node_sizes)
     max_value = max(node_sizes)
     norm = plt.Normalize(vmin=min_value, vmax=max_value)
-    colormap = cm.get_cmap('winter_r')  # Choose a colormap
+    colormap = plt.colormaps['winter_r']  # Choose a colormap
     colors = colormap(norm(node_sizes))  # Use the colormap for color shading
 
     # Increase the figure size
@@ -205,7 +205,7 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     min_weight = min(weights) if weights else 1
     norm = mcolors.Normalize(vmin=min_weight, vmax=max_weight)
 
-    cmap = plt.colormaps.get_cmap(colormap_name)
+    cmap = plt.colormaps[colormap_name]
     edge_colors = [cmap(min_color + (norm(weight) ** power_factor) * (1 - min_color)) for weight in weights]
 
     nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue",
@@ -222,7 +222,7 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     plt.show()
 
 
-def plot_louvain_communities(G, colormap_name='viridis'):
+def plot_louvain_communities(G, colormap_name='spring'):
     partition = community_louvain.best_partition(G, weight='weight')
 
     pos = nx.random_layout(G)
