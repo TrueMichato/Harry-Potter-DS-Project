@@ -9,6 +9,9 @@ import matplotlib.colors as mcolors
 import random
 import matplotlib.cm as cm
 import community as community_louvain
+import igraph as ig
+import leidenalg as la
+from cdlib import algorithms
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 
 
@@ -155,7 +158,7 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     min_value = min(node_sizes)
     max_value = max(node_sizes)
     norm = plt.Normalize(vmin=min_value, vmax=max_value)
-    colormap = cm.get_cmap('winter_r')  # Choose a colormap
+    colormap = plt.colormaps['winter_r']  # Choose a colormap
     colors = colormap(norm(node_sizes))  # Use the colormap for color shading
 
     # Increase the figure size
@@ -193,6 +196,7 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     return G, pos
 
 
+
 def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min_color=0.3, colormap_name="Oranges", power_factor=2):
     G = nx.Graph()
     for pair, count in pair_counts.items():
@@ -216,7 +220,7 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     min_weight = min(weights) if weights else 1
     norm = mcolors.Normalize(vmin=min_weight, vmax=max_weight)
 
-    cmap = plt.colormaps.get_cmap(colormap_name)
+    cmap = plt.colormaps[colormap_name]
     edge_colors = [cmap(min_color + (norm(weight) ** power_factor) * (1 - min_color)) for weight in weights]
 
     nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue",
@@ -233,14 +237,15 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     plt.show()
 
 
-def plot_louvain_communities(G, colormap_name='viridis'):
+def plot_louvain_communities(G, pos, colormap_name='spring'):
     partition = community_louvain.best_partition(G, weight='weight')
 
-    pos = nx.random_layout(G)
     cmap = plt.colormaps[colormap_name]
     num_communities = len(set(partition.values()))
 
     fig, ax = plt.subplots(figsize=(20, 20))
+    for spine in ax.spines.values():
+        spine.set_visible(False)
     nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=3000,
                            cmap=cmap, node_color=list(partition.values()))
     nx.draw_networkx_edges(G, pos, alpha=0.5)
@@ -262,6 +267,75 @@ def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
         if not G.has_edge(name1, name2):
             G.add_edge(name1, name2, weight=count)
     return G
+
+
+def plot_leiden_communities_with_weights(G, pos, colormap_name='spring'):
+    # Convert the NetworkX graph to an iGraph graph with edge weights
+    # Ensure that the weights are floating point values
+    edges = [(u, v, float(data['weight'])) for u, v, data in G.edges(data=True)]
+    G_ig = ig.Graph.TupleList(edges, directed=False, weights=True)
+
+    # Perform Leiden community detection using edge weights
+    partition = la.find_partition(G_ig, la.ModularityVertexPartition, weights=G_ig.es['weight'])
+
+    # Get the community membership of each node
+    membership = partition.membership
+
+    # Map the memberships back to the NetworkX nodes
+    node_communities = {node: membership[idx] for idx, node in enumerate(G.nodes())}
+
+    # Get the unique communities
+    num_communities = len(set(node_communities.values()))
+
+    # Prepare the colormap
+    cmap = plt.colormaps[colormap_name]
+
+    fig, ax = plt.subplots(figsize=(20, 20))
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    # Draw nodes with colors based on community membership
+    nx.draw_networkx_nodes(G, pos, node_color=[node_communities[node] for node in G.nodes()],
+                           node_size=3000, cmap=cmap, alpha=0.8)
+
+    # Draw edges
+    nx.draw_networkx_edges(G, pos, alpha=0.5)
+
+    # Draw labels
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+
+    plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected")
+    plt.show()
+
+    return node_communities
+
+
+def plot_surprise_communities(G, pos=None, colormap_name='spring'):
+    # Perform Surprise community detection
+    communities = algorithms.surprise_communities(G)
+
+    # Extract communities and the number of communities detected
+    community_map = {node: i for i, community in enumerate(communities.communities) for node in community}
+    num_communities = len(communities.communities)
+
+    # If no position is provided, use spring layout
+    if pos is None:
+        pos = nx.spring_layout(G)
+
+    # Prepare the colormap
+    cmap = plt.colormaps[colormap_name]
+
+    # Plot the graph with node colors based on their community
+    plt.figure(figsize=(20, 20))
+    for i, community in enumerate(communities.communities):
+        nx.draw_networkx_nodes(G, pos, nodelist=community, node_size=3000,
+                               node_color=[cmap(i / num_communities)], alpha=0.8)
+
+    nx.draw_networkx_edges(G, pos, alpha=0.5)
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+
+    plt.title(f"Surprise Community Detection - {num_communities} Communities Detected")
+    plt.show()
 
 
 def save_pair_counts(pair_counts):
@@ -288,24 +362,26 @@ def get_dict_names_id_from_pickle():
 
 def main():
     # todo: remove the pickle usage in the future
-    # df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
-    # df_characters = pd.read_csv(r"..\Data\character_names.csv")
-    # dict_names_id = create_dict_names_id(df_characters)
-    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    # save_dict_names_id(dict_names_id)
-    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    # save_pair_counts(pair_counts)
+    df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
+    df_characters = pd.read_csv(r"..\Data\character_names.csv")
+    dict_names_id = create_dict_names_id(df_characters)
+    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    save_dict_names_id(dict_names_id)
+    pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    save_pair_counts(pair_counts)
 
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
 
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    # todo: fix the plotting of the weight by edge color
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
     G, pos = plot_try(pair_counts, dict_names_id, threshold_count=15)
 
-    # Plotting Louvain communities
     plot_louvain_communities(G, pos)
+    #
+    # plot_leiden_communities_with_weights(G, pos)
+
+    # plot_surprise_communities(G, pos)
 
 
 if __name__ == "__main__":
