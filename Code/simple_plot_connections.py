@@ -98,14 +98,6 @@ def remove_characters_below_threshold(dict_names_id, df_sentences, threshold=2):
     return filtered_dict
 
 
-# def make_graph_sparse(G, fraction=0.5):
-#     edges = list(G.edges())
-#     num_edges_to_keep = int(len(edges) * fraction)
-#     edges_to_keep = random.sample(edges, num_edges_to_keep)
-#     G_sparse = nx.Graph()
-#     G_sparse.add_edges_from(edges_to_keep)
-#     return G_sparse
-
 def make_graph_sparse(G, fraction=0.5):
     # Get all edges with their attributes
     edges = list(G.edges(data=True))
