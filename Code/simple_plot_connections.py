@@ -230,6 +230,8 @@ def plot_louvain_communities(G, colormap_name='spring'):
     num_communities = len(set(partition.values()))
 
     fig, ax = plt.subplots(figsize=(20, 20))
+    for spine in ax.spines.values():
+        spine.set_visible(False)
     nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=3000,
                            cmap=cmap, node_color=list(partition.values()))
     nx.draw_networkx_edges(G, pos, alpha=0.5)
@@ -274,6 +276,7 @@ def get_dict_names_id_from_pickle():
         dict_names_id = pickle.load(f)
     return dict_names_id
 
+
 def main():
     # todo: remove the pickle usage in the future
     # df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
@@ -287,8 +290,7 @@ def main():
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
 
-    # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    # todo: fix the plotting of the weight by edge color
+    plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
     G = plot_try(pair_counts, dict_names_id, threshold_count=10)
 
