@@ -228,12 +228,11 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     plt.show()
 
 
-def louvain_community_detection(G):
-    partition = community_louvain.best_partition(G, weight='weight')  # Use weights for community detection
-    return partition
+def plot_louvain_communities(pair_counts, dict_names_id):
+    G = create_weighted_graph(pair_counts, dict_names_id, threshold_count=10)
+    partition = community_louvain.best_partition(G, weight='weight')
 
-def plot_louvain_communities(G, partition):
-    pos = nx.spring_layout(G)
+    pos = nx.random_layout(G)
     cmap = plt.get_cmap('viridis')
     num_communities = len(set(partition.values()))
 
@@ -296,12 +295,13 @@ def main():
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
 
-    plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
+    # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # todo: fix the plotting of the weight by edge color
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
-    plot_try(pair_counts, dict_names_id, threshold_count=10)
-    # todo: Louvain for community detection for the plot
-    # pagerank
+    # plot_try(pair_counts, dict_names_id, threshold_count=10)
+
+    # Plotting Louvain communities
+    plot_louvain_communities(pair_counts, dict_names_id)
 
 
 
