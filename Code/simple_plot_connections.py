@@ -294,8 +294,7 @@ def main():
     G = plot_try(pair_counts, dict_names_id, threshold_count=10)
 
     # Plotting Louvain communities
-    plot_louvain_communities(G)
-
+    # plot_louvain_communities(G)
 
 
 if __name__ == "__main__":
