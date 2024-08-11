@@ -155,7 +155,7 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     colors = colormap(norm(node_sizes))  # Use the colormap for color shading
 
     # Increase the figure size
-    plt.figure(figsize=(20, 20))
+    plt.figure(figsize=(10, 10))
 
     # Draw nodes
     nx.draw_networkx_nodes(G, pos, node_color=colors, node_size=node_sizes)
@@ -178,7 +178,7 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     plt.axis('off')
     plt.show()
 
-    return G
+    return G, pos
 
 
 
@@ -222,10 +222,9 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     plt.show()
 
 
-def plot_louvain_communities(G, colormap_name='spring'):
+def plot_louvain_communities(G, pos, colormap_name='spring'):
     partition = community_louvain.best_partition(G, weight='weight')
 
-    pos = nx.random_layout(G)
     cmap = plt.colormaps[colormap_name]
     num_communities = len(set(partition.values()))
 
@@ -292,10 +291,10 @@ def main():
 
     plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
-    G = plot_try(pair_counts, dict_names_id, threshold_count=10)
+    G, pos = plot_try(pair_counts, dict_names_id, threshold_count=10)
 
     # Plotting Louvain communities
-    plot_louvain_communities(G)
+    plot_louvain_communities(G, pos)
 
 
 
