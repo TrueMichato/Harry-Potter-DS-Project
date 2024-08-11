@@ -9,6 +9,7 @@ import matplotlib.colors as mcolors
 import random
 import matplotlib.cm as cm
 import community as community_louvain
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 
 
 def check_special_family_names(name, sentence):
@@ -102,7 +103,7 @@ def make_graph_sparse(G, fraction=0.5):
     G_sparse = nx.Graph()
 
     # Add nodes and edges with attributes to the sparse graph
-    for edge in edges_to_keep:
+    for edge in edges:
         u, v, attr = edge
         G_sparse.add_edge(u, v, **attr)
 
@@ -111,22 +112,35 @@ def make_graph_sparse(G, fraction=0.5):
 
 def generate_unique_positions(nodes, width=1, height=1, min_dist=0.1):
     pos = {}
+    num_tries = 0
     while len(pos) < len(nodes):
         node = len(pos)
         x = np.random.uniform(0, width)
         y = np.random.uniform(0, height)
         overlap = False
         for (ox, oy) in pos.values():
-            if np.sqrt((x - ox) ** 2 + (y - oy) ** 2) < min_dist:
+            if np.sqrt((x - ox) ** 2 + (y - oy) ** 2) < min_dist and num_tries < 1000:
+                num_tries+=1
                 overlap = True
                 break
         if not overlap:
+            num_tries = 0
             pos[node] = (x, y)
     return pos
 
 
 def plot_try(pair_counts, dict_names_id, threshold_count):
-    G = create_weighted_graph(pair_counts, dict_names_id, threshold_count)
+    # G = create_weighted_graph(pair_counts, dict_names_id, threshold_count)
+    G = nx.Graph()
+    for pair, count in pair_counts.items():
+        if count < threshold_count:
+            continue
+        name1 = dict_names_id[pair[0]][0]
+        name2 = dict_names_id[pair[1]][0]
+        G = check_add_node(G, name1)
+        G = check_add_node(G, name2)
+        if not G.has_edge(name1, name2):
+            G.add_edge(name1, name2, weight=count)
 
     # Make the graph sparse
     G = make_graph_sparse(G, fraction=0.2)
@@ -163,13 +177,21 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     # Draw edges with width proportional to weight
     edges = G.edges(data=True)
     weights = [edge[2]["weight"] for edge in edges]
-    # weights get_edge_attributes
-    min_width = 0.5  # Set a minimum edge width
-    max_width = 2  # Set a maximum edge width
-    scaling_factor_edges = 10  # Adjust this scaling factor as needed
-    widths = [min(max(w / scaling_factor_edges, min_width), max_width) for w in weights]
-    # widths = [max(w / 10, min_width) for w in weights]
-    nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, edge_color='gray', alpha=0.7)
+
+    custom_cmap = LinearSegmentedColormap.from_list("custom_grey", ['#B2BEB5', '#000000'])
+    # # Normalize the edge weights to map them to a darker range of greys
+    norm = Normalize(vmin=min(weights), vmax=max(weights))
+
+    # Map weights to colors using the custom colormap
+    edge_colors = [custom_cmap(norm(w)) for w in weights]
+
+    #
+    # # weights get_edge_attributes
+    # min_width = 0.5  # Set a minimum edge width
+    # max_width = 2  # Set a maximum edge width
+    # scaling_factor_edges = 10  # Adjust this scaling factor as needed
+    # widths = [min(max(w / scaling_factor_edges, min_width), max_width) for w in weights]
+    nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, edge_color=edge_colors, alpha=0.7)
 
     # Draw labels
     nx.draw_networkx_labels(G, pos, font_size=5, font_color='black', font_weight='bold')
@@ -291,7 +313,7 @@ def main():
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # todo: fix the plotting of the weight by edge color
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
-    G = plot_try(pair_counts, dict_names_id, threshold_count=5)
+    G = plot_try(pair_counts, dict_names_id, threshold_count=15)
 
     # Plotting Louvain communities
     # plot_louvain_communities(G)
