@@ -388,11 +388,15 @@ def main():
     pair_counts = get_pair_counts_from_pickle()
     pair_sentences, set_sentences = get_pair_sentences_from_pickle()
 
-    plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
-    plot_louvain_communities(G, pos, resolution=1.7)
-    plot_leiden_communities(G, pos, resolution=1.7)
-
+    # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
+    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
+    # plot_louvain_communities(G, pos, resolution=1.7)
+    # plot_leiden_communities(G, pos, resolution=1.7)
+    # pair_counts = {(189, 42): 3, (32, 11): 2, (189, 11): 2}
+    # dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
+    # pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
+    # indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
+    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, set_sentences, threshold_count=30)
 
 if __name__ == "__main__":
     main()
