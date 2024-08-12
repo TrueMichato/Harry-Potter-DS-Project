@@ -87,7 +87,7 @@ def remove_characters_below_threshold(dict_names_id, df_sentences, threshold=2):
     filtered_dict = {}
 
     for id, names in dict_names_id.items():
-        total_count = sum(df_sentences['sentence'].str.contains(name, regex=False).sum() for name in names)
+        total_count = sum(df_sentences['sentence'].str.contains(r"\b" + {re.escape(name)} + r"\b", regex=True).sum() for name in names)
         if total_count >= threshold:
             filtered_dict[id] = names
 
