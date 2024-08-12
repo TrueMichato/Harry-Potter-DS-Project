@@ -178,12 +178,6 @@ def plot_page_rank(pair_counts, dict_names_id, threshold_count):
     # Map weights to colors using the custom colormap
     edge_colors = [custom_cmap(norm(w)) for w in weights]
 
-    #
-    # # weights get_edge_attributes
-    # min_width = 0.5  # Set a minimum edge width
-    # max_width = 2  # Set a maximum edge width
-    # scaling_factor_edges = 10  # Adjust this scaling factor as needed
-    # widths = [min(max(w / scaling_factor_edges, min_width), max_width) for w in weights]
     nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, edge_color=edge_colors, alpha=0.7)
 
     # Draw labels
