@@ -196,7 +196,6 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     return G, pos
 
 
-
 def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min_color=0.3, colormap_name="Oranges", power_factor=2):
     G = nx.Graph()
     for pair, count in pair_counts.items():
@@ -246,10 +245,10 @@ def plot_louvain_communities(G, pos, colormap_name='spring'):
     fig, ax = plt.subplots(figsize=(20, 20))
     for spine in ax.spines.values():
         spine.set_visible(False)
-    nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=3000,
+    nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=300,
                            cmap=cmap, node_color=list(partition.values()))
     nx.draw_networkx_edges(G, pos, alpha=0.5)
-    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+    nx.draw_networkx_labels(G, pos, font_size=8, font_weight="bold", font_color='black')
 
     plt.title(f"Louvain Community Detection - {num_communities} Communities Detected")
     plt.show()
@@ -296,13 +295,13 @@ def plot_leiden_communities_with_weights(G, pos, colormap_name='spring'):
 
     # Draw nodes with colors based on community membership
     nx.draw_networkx_nodes(G, pos, node_color=[node_communities[node] for node in G.nodes()],
-                           node_size=3000, cmap=cmap, alpha=0.8)
+                           node_size=300, cmap=cmap, alpha=0.8)
 
     # Draw edges
     nx.draw_networkx_edges(G, pos, alpha=0.5)
 
     # Draw labels
-    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+    nx.draw_networkx_labels(G, pos, font_size=8, font_weight="bold", font_color='black')
 
     plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected")
     plt.show()
@@ -328,11 +327,11 @@ def plot_surprise_communities(G, pos=None, colormap_name='spring'):
     # Plot the graph with node colors based on their community
     plt.figure(figsize=(20, 20))
     for i, community in enumerate(communities.communities):
-        nx.draw_networkx_nodes(G, pos, nodelist=community, node_size=3000,
+        nx.draw_networkx_nodes(G, pos, nodelist=community, node_size=100,
                                node_color=[cmap(i / num_communities)], alpha=0.8)
 
     nx.draw_networkx_edges(G, pos, alpha=0.5)
-    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+    nx.draw_networkx_labels(G, pos, font_size=8, font_weight="bold", font_color='black')
 
     plt.title(f"Surprise Community Detection - {num_communities} Communities Detected")
     plt.show()
@@ -362,13 +361,13 @@ def get_dict_names_id_from_pickle():
 
 def main():
     # todo: remove the pickle usage in the future
-    df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
-    df_characters = pd.read_csv(r"..\Data\character_names.csv")
-    dict_names_id = create_dict_names_id(df_characters)
-    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    save_dict_names_id(dict_names_id)
-    pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    save_pair_counts(pair_counts)
+    # df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
+    # df_characters = pd.read_csv(r"..\Data\character_names.csv")
+    # dict_names_id = create_dict_names_id(df_characters)
+    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    # save_dict_names_id(dict_names_id)
+    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    # save_pair_counts(pair_counts)
 
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
@@ -378,10 +377,10 @@ def main():
     G, pos = plot_try(pair_counts, dict_names_id, threshold_count=15)
 
     plot_louvain_communities(G, pos)
-    #
-    # plot_leiden_communities_with_weights(G, pos)
 
-    # plot_surprise_communities(G, pos)
+    plot_leiden_communities_with_weights(G, pos)
+
+    plot_surprise_communities(G, pos)
 
 
 if __name__ == "__main__":
