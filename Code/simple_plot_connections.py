@@ -14,6 +14,7 @@ import leidenalg as la
 from cdlib import algorithms
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from textblob import TextBlob
 
 
 def check_special_family_names(name, sentence):
@@ -272,7 +273,7 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
         G = check_add_node(G, name1)
         G = check_add_node(G, name2)
         if not G.has_edge(name1, name2):
-            sum_semantic = calc_semantic(pairs_to_indices[pair], indices_to_semantics)
+            sum_semantic = calc_semantic(pairs_to_indices[pair], indices_to_semantics) / count
             G.add_edge(name1, name2, semantic=sum_semantic)
 
     # Make the graph sparse
@@ -293,18 +294,19 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     # Draw edges with width proportional to weight
     edges = G.edges(data=True)
     semantics = [edge[2]["semantic"] for edge in edges]
+    custom_cmap = LinearSegmentedColormap.from_list("custom_blue_red", ['#0000FF', '#FF0000'], N=6)
 
-    custom_cmap = LinearSegmentedColormap.from_list("custom_blue_red", ['#0000FF', '#FF0000'], N=4)
-    # # Normalize the edge weights to map them to a darker range of greys
+    # Normalize the edge weights to map them to a darker range of greys
     norm = Normalize(vmin=min(semantics), vmax=max(semantics))
 
     # Map semantics to colors using the custom colormap
     edge_colors = [custom_cmap(norm(s)) for s in semantics]
 
-    nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, edge_color=edge_colors, alpha=0.7)
+    nx.draw_networkx_edges(G, pos, edgelist=edges, width=2, edge_color=edge_colors, alpha=0.7)
 
     # Draw labels
     nx.draw_networkx_labels(G, pos, font_size=5, font_color='black', font_weight='bold')
+
 
     # Create the colorbar
     fig = plt.gcf()
@@ -313,14 +315,13 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
     sm.set_array([])  # We don't actually need an array here
 
-    cbar = plt.colorbar(sm, cax=ax)
     cbar = plt.colorbar(sm, cax=ax, orientation='horizontal')
     cbar.set_ticks([0, 1])
     cbar.set_ticklabels(['Negative Relationship', 'Positive Relationship'])
 
     # Add labels next to the colorbar
-    cbar.ax.text(1, 2.7, 'Negative Relationship', va='top', ha='left', fontsize=10, color='#0000FF')
-    cbar.ax.text(3, 2.7, 'Positive Relationship', va='top', ha='right', fontsize=10, color='#FF0000')
+    cbar.ax.text(-1, 2.7, 'Negative Relationship', va='top', ha='left', fontsize=10, color='#0000FF')
+    cbar.ax.text(1, 2.7, 'Positive Relationship', va='top', ha='right', fontsize=10, color='#FF0000')
 
     # plt.title("Character Relationship Network")
     plt.axis('off')
@@ -356,6 +357,7 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
 #
 #
 
+
 def analyze_sentiment_vader(set_sentences, df_sentences):
     analyzer = SentimentIntensityAnalyzer()
     sentiment_dict = {}
@@ -373,6 +375,26 @@ def analyze_sentiment_vader(set_sentences, df_sentences):
             sentiment_dict[index] = 0
 
     return sentiment_dict
+
+
+def analyze_sentiment_textblob(set_sentences, df_sentences):
+    sentiment_dict = {}
+
+    for index in set_sentences:
+        sentence = df_sentences.loc[index, 'sentence']
+        blob = TextBlob(sentence)
+        polarity = blob.sentiment.polarity
+
+        # TextBlob provides a polarity score between -1 and 1
+        if polarity >= 0.05:
+            sentiment_dict[index] = 1  # Positive sentiment
+        elif polarity <= -0.05:
+            sentiment_dict[index] = -1  # Negative sentiment
+        else:
+            sentiment_dict[index] = 0  # Neutral sentiment
+
+    return sentiment_dict
+
 
 def save_pair_counts(pair_counts):
     with open(r"..\Data\pair_counts.pkl", "wb") as f:
@@ -433,7 +455,7 @@ def main():
     # dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
     # pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
     # indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
-    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250)
+    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
 
 if __name__ == "__main__":
     main()
