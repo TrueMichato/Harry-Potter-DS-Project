@@ -439,16 +439,6 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     # Draw labels
     nx.draw_networkx_labels(G, pos, font_size=5, font_color='black', font_weight='bold')
 
-    # # Create the colorbar
-    # fig = plt.gcf()
-    # ax = fig.add_axes([0.9, 0.1, 0.03, 0.8])  # Position the colorbar on the right side
-    # sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
-    # sm.set_array([])  # We don't actually need an array here
-    #
-    # cbar = plt.colorbar(sm, cax=ax)
-    # cbar.set_label('Character Relationship Sentiment', fontsize=12)
-    # cbar.set_ticks([0, 0.5, 1])
-    # cbar.set_ticklabels(['Negative (Blue)', 'Neutral (Mixed)', 'Positive (Red)'])
     # Create the colorbar
     fig = plt.gcf()
     ax = fig.add_axes([0.1, 0.05, 0.6, 0.02])  # Adjust size and position
@@ -456,7 +446,6 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
     sm.set_array([])  # We don't actually need an array here
 
-    cbar = plt.colorbar(sm, cax=ax)
     cbar = plt.colorbar(sm, cax=ax, orientation='horizontal')
     cbar.set_ticks([0, 1])
     cbar.set_ticklabels(['Negative Relationship', 'Positive Relationship'])
@@ -516,9 +505,9 @@ def main():
     # For Leiden Community Detection with adjusted resolution
     # plot_leiden_communities_with_weights(G, pos, resolution=1.7)
 
-    pair_counts = {(189, 42): 3, (32, 11): 2}
+    pair_counts = {(189, 42): 3, (32, 11): 2, (189, 11): 2}
     dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
-    pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5]}
+    pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
     indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
     plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indices_to_semantics, threshold_count=2)
     # plot_surprise_communities(G, pos)
