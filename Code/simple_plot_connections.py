@@ -148,8 +148,8 @@ def generate_unique_positions(nodes, width=1, height=1, min_dist=0.1):
     return pos
 
 
-def plot_page_rank(pair_sentences, dict_names_id, threshold_count):
-    G = create_weighted_graph(pair_sentences, dict_names_id, threshold_count)
+def plot_page_rank(pair_count, dict_names_id, threshold_count):
+    G = create_weighted_graph(pair_count, dict_names_id, threshold_count)
     G = make_graph_sparse(G, fraction=0.2)
     pagerank_scores = nx.pagerank(G, weight='weight')
 
@@ -190,20 +190,6 @@ def plot_page_rank(pair_sentences, dict_names_id, threshold_count):
     return G, pos
 
 
-def create_weighted_graph(pair_count, dict_names_id, threshold_count=3):
-    G = nx.Graph()
-    for pair, count in pair_count.items():
-        if count < threshold_count:
-            continue
-        name1 = dict_names_id[pair[0]][0]
-        name2 = dict_names_id[pair[1]][0]
-        G = check_add_node(G, name1)
-        G = check_add_node(G, name2)
-        if not G.has_edge(name1, name2):
-            G.add_edge(name1, name2, weight=count)
-    return G
-
-
 def plot_louvain_communities(G, pos, colormap_name='tab10', resolution=1.0):
     partition = community_louvain.best_partition(G, weight='weight', resolution=resolution)
 
@@ -222,7 +208,21 @@ def plot_louvain_communities(G, pos, colormap_name='tab10', resolution=1.0):
     plt.show()
 
 
+def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
+    G = nx.Graph()
+    for pair, count in pair_counts.items():
+        if count < threshold_count:
+            continue
+        name1 = dict_names_id[pair[0]][0]
+        name2 = dict_names_id[pair[1]][0]
+        G = check_add_node(G, name1)
+        G = check_add_node(G, name2)
+        if not G.has_edge(name1, name2):
+            G.add_edge(name1, name2, weight=count)
+    return G
+
 def plot_leiden_communities(G, pos, colormap_name='tab10', resolution=1.0):
+    # Convert the NetworkX graph to an iGraph graph with edge weights
     edges = [(u, v, float(data['weight'])) for u, v, data in G.edges(data=True)]
     G_ig = ig.Graph.TupleList(edges, directed=False, weights=True)
 
@@ -238,16 +238,103 @@ def plot_leiden_communities(G, pos, colormap_name='tab10', resolution=1.0):
     for spine in ax.spines.values():
         spine.set_visible(False)
 
+    # Draw nodes with colors based on community membership
     nx.draw_networkx_nodes(G, pos, node_color=[node_communities[node] for node in G.nodes()],
                            node_size=3000, cmap=cmap, alpha=0.8)
+
+    # Draw edges
     nx.draw_networkx_edges(G, pos, alpha=0.5)
+
+    # Draw labels
     nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
 
-    plt.title(
-        f"Leiden Community Detection with Weights - {num_communities} Communities Detected (Resolution={resolution})")
+    plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected (Resolution={resolution})")
     plt.show()
 
     return node_communities
+
+
+
+def calc_semantic(indices, indices_to_semantics):
+    sum_semantic = 0
+    for i in indices:
+        sum_semantic+= indices_to_semantics[i]
+    return sum_semantic
+
+def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indices_to_semantics, threshold_count=30):
+    G = nx.Graph()
+    for pair, count in pair_counts.items():
+        if count < threshold_count:
+            continue
+        name1 = dict_names_id[pair[0]][0]
+        name2 = dict_names_id[pair[1]][0]
+        G = check_add_node(G, name1)
+        G = check_add_node(G, name2)
+        if not G.has_edge(name1, name2):
+            sum_semantic = calc_semantic(pairs_to_indices[pair], indices_to_semantics)
+            G.add_edge(name1, name2, semantic=sum_semantic)
+
+    # Make the graph sparse
+    G = make_graph_sparse(G, fraction=0.2)
+
+    nodes = list(G.nodes())
+    pos_dict = generate_unique_positions(nodes, width=1, height=1, min_dist=0.1)
+
+    # Create a position mapping for node names
+    pos = {node: (x, y) for node, (x, y) in zip(nodes, pos_dict.values())}
+
+    # Increase the figure size
+    plt.figure(figsize=(20, 20))
+
+    # Draw nodes
+    nx.draw_networkx_nodes(G, pos, node_color="blue", node_size=300)
+
+    # Draw edges with width proportional to weight
+    edges = G.edges(data=True)
+    semantics = [edge[2]["semantic"] for edge in edges]
+
+    custom_cmap = LinearSegmentedColormap.from_list("custom_blue_red", ['#0000FF', '#FF0000'])
+    # # Normalize the edge weights to map them to a darker range of greys
+    norm = Normalize(vmin=min(semantics), vmax=max(semantics))
+
+    # Map semantics to colors using the custom colormap
+    edge_colors = [custom_cmap(norm(s)) for s in semantics]
+
+    nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, edge_color=edge_colors, alpha=0.7)
+
+    # Draw labels
+    nx.draw_networkx_labels(G, pos, font_size=5, font_color='black', font_weight='bold')
+
+    # # Create the colorbar
+    # fig = plt.gcf()
+    # ax = fig.add_axes([0.9, 0.1, 0.03, 0.8])  # Position the colorbar on the right side
+    # sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    # sm.set_array([])  # We don't actually need an array here
+    #
+    # cbar = plt.colorbar(sm, cax=ax)
+    # cbar.set_label('Character Relationship Sentiment', fontsize=12)
+    # cbar.set_ticks([0, 0.5, 1])
+    # cbar.set_ticklabels(['Negative (Blue)', 'Neutral (Mixed)', 'Positive (Red)'])
+    # Create the colorbar
+    fig = plt.gcf()
+    ax = fig.add_axes([0.1, 0.05, 0.6, 0.02])  # Adjust size and position
+
+    sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    sm.set_array([])  # We don't actually need an array here
+
+    cbar = plt.colorbar(sm, cax=ax)
+    cbar = plt.colorbar(sm, cax=ax, orientation='horizontal')
+    cbar.set_ticks([0, 1])
+    cbar.set_ticklabels(['Negative Relationship', 'Positive Relationship'])
+
+    # Add labels next to the colorbar
+    cbar.ax.text(1, 2.7, 'Negative Relationship', va='top', ha='left', fontsize=10, color='#0000FF')
+    cbar.ax.text(3, 2.7, 'Positive Relationship', va='top', ha='right', fontsize=10, color='#FF0000')
+
+    # plt.title("Character Relationship Network")
+    plt.axis('off')
+    plt.show()
+
 
 
 def save_pair_counts(pair_counts):
