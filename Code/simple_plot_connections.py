@@ -439,11 +439,35 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     # Draw labels
     nx.draw_networkx_labels(G, pos, font_size=5, font_color='black', font_weight='bold')
 
-    plt.title("Character Relationship Network")
+    # # Create the colorbar
+    # fig = plt.gcf()
+    # ax = fig.add_axes([0.9, 0.1, 0.03, 0.8])  # Position the colorbar on the right side
+    # sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    # sm.set_array([])  # We don't actually need an array here
+    #
+    # cbar = plt.colorbar(sm, cax=ax)
+    # cbar.set_label('Character Relationship Sentiment', fontsize=12)
+    # cbar.set_ticks([0, 0.5, 1])
+    # cbar.set_ticklabels(['Negative (Blue)', 'Neutral (Mixed)', 'Positive (Red)'])
+    # Create the colorbar
+    fig = plt.gcf()
+    ax = fig.add_axes([0.1, 0.05, 0.6, 0.02])  # Adjust size and position
+
+    sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    sm.set_array([])  # We don't actually need an array here
+
+    cbar = plt.colorbar(sm, cax=ax)
+    cbar = plt.colorbar(sm, cax=ax, orientation='horizontal')
+    cbar.set_ticks([0, 1])
+    cbar.set_ticklabels(['Negative Relationship', 'Positive Relationship'])
+
+    # Add labels next to the colorbar
+    cbar.ax.text(1, 2.7, 'Negative Relationship', va='top', ha='left', fontsize=10, color='#0000FF')
+    cbar.ax.text(3, 2.7, 'Positive Relationship', va='top', ha='right', fontsize=10, color='#FF0000')
+
+    # plt.title("Character Relationship Network")
     plt.axis('off')
     plt.show()
-
-    return G, pos
 
 
 
