@@ -87,7 +87,7 @@ def remove_characters_below_threshold(dict_names_id, df_sentences, threshold=2):
     filtered_dict = {}
 
     for id, names in dict_names_id.items():
-        total_count = sum(df_sentences['sentence'].str.contains(name, regex=False).sum() for name in names)
+        total_count = sum(df_sentences['sentence'].str.contains(r"\b" + {re.escape(name)} + r"\b", regex=True).sum() for name in names)
         if total_count >= threshold:
             filtered_dict[id] = names
 
@@ -178,12 +178,6 @@ def plot_page_rank(pair_counts, dict_names_id, threshold_count):
     # Map weights to colors using the custom colormap
     edge_colors = [custom_cmap(norm(w)) for w in weights]
 
-    #
-    # # weights get_edge_attributes
-    # min_width = 0.5  # Set a minimum edge width
-    # max_width = 2  # Set a maximum edge width
-    # scaling_factor_edges = 10  # Adjust this scaling factor as needed
-    # widths = [min(max(w / scaling_factor_edges, min_width), max_width) for w in weights]
     nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, edge_color=edge_colors, alpha=0.7)
 
     # Draw labels
