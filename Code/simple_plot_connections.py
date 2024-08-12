@@ -13,6 +13,8 @@ import igraph as ig
 import leidenalg as la
 from cdlib import algorithms
 from matplotlib.colors import LinearSegmentedColormap, Normalize
+from transformers import pipeline
+import torch
 
 
 def check_special_family_names(name, sentence):
@@ -334,6 +336,34 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     # plt.title("Character Relationship Network")
     plt.axis('off')
     plt.show()
+
+
+def analyze_sentiment_advanced(sentence_indexes, df_sentences):
+    # Check if GPU is available and set the device accordingly
+    device = 0 if torch.cuda.is_available() else -1
+
+    # Load the sentiment analysis pipeline with the correct device
+    sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model="cardiffnlp/twitter-roberta-base-sentiment",
+        device=device
+    )
+
+    sentiment_dict = {}
+
+    for index in sentence_indexes:
+        sentence = df_sentences.loc[index, 'sentence']
+        result = sentiment_pipeline(sentence)[0]
+
+        # The result contains 'label' and 'score', e.g., {'label': 'POSITIVE', 'score': 0.99}
+        if result['label'] == 'LABEL_2':  # Positive sentiment
+            sentiment_dict[index] = 'positive'
+        elif result['label'] == 'LABEL_0':  # Negative sentiment
+            sentiment_dict[index] = 'negative'
+        else:  # Neutral sentiment (depends on the model; may be labeled differently)
+            sentiment_dict[index] = 'neutral'
+
+    return sentiment_dict
 
 
 
