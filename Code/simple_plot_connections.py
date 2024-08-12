@@ -132,7 +132,7 @@ def generate_unique_positions(nodes, width=1, height=1, min_dist=0.1):
     return pos
 
 
-def plot_try(pair_counts, dict_names_id, threshold_count):
+def plot_page_rank(pair_counts, dict_names_id, threshold_count):
     G = create_weighted_graph(pair_counts, dict_names_id, threshold_count)
 
     # Make the graph sparse
@@ -196,6 +196,7 @@ def plot_try(pair_counts, dict_names_id, threshold_count):
     return G, pos
 
 
+
 def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min_color=0.3, colormap_name="Oranges", power_factor=2):
     G = nx.Graph()
     for pair, count in pair_counts.items():
@@ -236,8 +237,8 @@ def plot_weighted_connections(pair_counts, dict_names_id, threshold_count=3, min
     plt.show()
 
 
-def plot_louvain_communities(G, pos, colormap_name='spring'):
-    partition = community_louvain.best_partition(G, weight='weight')
+def plot_louvain_communities(G, pos, colormap_name='tab10', resolution=1.0):
+    partition = community_louvain.best_partition(G, weight='weight', resolution=resolution)
 
     cmap = plt.colormaps[colormap_name]
     num_communities = len(set(partition.values()))
@@ -245,13 +246,31 @@ def plot_louvain_communities(G, pos, colormap_name='spring'):
     fig, ax = plt.subplots(figsize=(20, 20))
     for spine in ax.spines.values():
         spine.set_visible(False)
-    nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=300,
+    nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=3000,
                            cmap=cmap, node_color=list(partition.values()))
     nx.draw_networkx_edges(G, pos, alpha=0.5)
-    nx.draw_networkx_labels(G, pos, font_size=8, font_weight="bold", font_color='black')
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
 
-    plt.title(f"Louvain Community Detection - {num_communities} Communities Detected")
+    plt.title(f"Louvain Community Detection - {num_communities} Communities Detected (Resolution={resolution})")
     plt.show()
+
+
+# def plot_louvain_communities(G, pos, colormap_name='tab10'):
+#     partition = community_louvain.best_partition(G, weight='weight')
+#
+#     cmap = plt.colormaps[colormap_name]
+#     num_communities = len(set(partition.values()))
+#
+#     fig, ax = plt.subplots(figsize=(20, 20))
+#     for spine in ax.spines.values():
+#         spine.set_visible(False)
+#     nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=3000,
+#                            cmap=cmap, node_color=list(partition.values()))
+#     nx.draw_networkx_edges(G, pos, alpha=0.5)
+#     nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+#
+#     plt.title(f"Louvain Community Detection - {num_communities} Communities Detected")
+#     plt.show()
 
 
 def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
@@ -268,14 +287,54 @@ def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
     return G
 
 
-def plot_leiden_communities_with_weights(G, pos, colormap_name='spring'):
+# def plot_leiden_communities_with_weights(G, pos, colormap_name='tab10'):
+#     # Convert the NetworkX graph to an iGraph graph with edge weights
+#     # Ensure that the weights are floating point values
+#     edges = [(u, v, float(data['weight'])) for u, v, data in G.edges(data=True)]
+#     G_ig = ig.Graph.TupleList(edges, directed=False, weights=True)
+#
+#     # Perform Leiden community detection using edge weights
+#     partition = la.find_partition(G_ig, la.ModularityVertexPartition, weights=G_ig.es['weight'])
+#
+#     # Get the community membership of each node
+#     membership = partition.membership
+#
+#     # Map the memberships back to the NetworkX nodes
+#     node_communities = {node: membership[idx] for idx, node in enumerate(G.nodes())}
+#
+#     # Get the unique communities
+#     num_communities = len(set(node_communities.values()))
+#
+#     # Prepare the colormap
+#     cmap = plt.colormaps[colormap_name]
+#
+#     fig, ax = plt.subplots(figsize=(20, 20))
+#     for spine in ax.spines.values():
+#         spine.set_visible(False)
+#
+#     # Draw nodes with colors based on community membership
+#     nx.draw_networkx_nodes(G, pos, node_color=[node_communities[node] for node in G.nodes()],
+#                            node_size=3000, cmap=cmap, alpha=0.8)
+#
+#     # Draw edges
+#     nx.draw_networkx_edges(G, pos, alpha=0.5)
+#
+#     # Draw labels
+#     nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
+#
+#     plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected")
+#     plt.show()
+#
+#     return node_communities
+
+
+def plot_leiden_communities_with_weights(G, pos, colormap_name='tab10', resolution=1.0):
     # Convert the NetworkX graph to an iGraph graph with edge weights
-    # Ensure that the weights are floating point values
     edges = [(u, v, float(data['weight'])) for u, v, data in G.edges(data=True)]
     G_ig = ig.Graph.TupleList(edges, directed=False, weights=True)
 
     # Perform Leiden community detection using edge weights
-    partition = la.find_partition(G_ig, la.ModularityVertexPartition, weights=G_ig.es['weight'])
+    partition = la.find_partition(G_ig, la.RBConfigurationVertexPartition, weights=G_ig.es['weight'], resolution_parameter=resolution)
 
     # Get the community membership of each node
     membership = partition.membership
@@ -295,15 +354,15 @@ def plot_leiden_communities_with_weights(G, pos, colormap_name='spring'):
 
     # Draw nodes with colors based on community membership
     nx.draw_networkx_nodes(G, pos, node_color=[node_communities[node] for node in G.nodes()],
-                           node_size=300, cmap=cmap, alpha=0.8)
+                           node_size=3000, cmap=cmap, alpha=0.8)
 
     # Draw edges
     nx.draw_networkx_edges(G, pos, alpha=0.5)
 
     # Draw labels
-    nx.draw_networkx_labels(G, pos, font_size=8, font_weight="bold", font_color='black')
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
 
-    plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected")
+    plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected (Resolution={resolution})")
     plt.show()
 
     return node_communities
@@ -327,11 +386,11 @@ def plot_surprise_communities(G, pos=None, colormap_name='spring'):
     # Plot the graph with node colors based on their community
     plt.figure(figsize=(20, 20))
     for i, community in enumerate(communities.communities):
-        nx.draw_networkx_nodes(G, pos, nodelist=community, node_size=100,
+        nx.draw_networkx_nodes(G, pos, nodelist=community, node_size=3000,
                                node_color=[cmap(i / num_communities)], alpha=0.8)
 
     nx.draw_networkx_edges(G, pos, alpha=0.5)
-    nx.draw_networkx_labels(G, pos, font_size=8, font_weight="bold", font_color='black')
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
 
     plt.title(f"Surprise Community Detection - {num_communities} Communities Detected")
     plt.show()
@@ -374,14 +433,15 @@ def main():
 
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # plot_weighted_connections(pair_counts, dict_names_id, threshold_count=10)
-    G, pos = plot_try(pair_counts, dict_names_id, threshold_count=15)
+    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
 
-    plot_louvain_communities(G, pos)
+    # For Louvain Community Detection with adjusted resolution
+    plot_louvain_communities(G, pos, resolution=1.7)
 
-    plot_leiden_communities_with_weights(G, pos)
+    # For Leiden Community Detection with adjusted resolution
+    plot_leiden_communities_with_weights(G, pos, resolution=1.7)
 
-    plot_surprise_communities(G, pos)
-
+    # plot_surprise_communities(G, pos)
 
 if __name__ == "__main__":
     main()
