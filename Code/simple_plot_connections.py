@@ -338,7 +338,7 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     plt.show()
 
 
-def analyze_sentiment_advanced(sentence_indexes, df_sentences):
+def analyze_sentiment_advanced(set_sentences, df_sentences):
     # Check if GPU is available and set the device accordingly
     device = 0 if torch.cuda.is_available() else -1
 
@@ -351,7 +351,7 @@ def analyze_sentiment_advanced(sentence_indexes, df_sentences):
 
     sentiment_dict = {}
 
-    for index in sentence_indexes:
+    for index in set_sentences:
         sentence = df_sentences.loc[index, 'sentence']
         result = sentiment_pipeline(sentence)[0]
 
