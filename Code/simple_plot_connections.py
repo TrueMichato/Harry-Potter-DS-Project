@@ -326,34 +326,33 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     plt.show()
     
 
-# def analyze_sentiment_advanced(set_sentences, df_sentences):
-#     # Check if GPU is available and set the device accordingly
-#     device = 0 if torch.cuda.is_available() else -1
-#
-#     # Load the sentiment analysis pipeline with the correct device
-#     sentiment_pipeline = pipeline(
-#         "sentiment-analysis",
-#         model="cardiffnlp/twitter-roberta-base-sentiment",
-#         device=device
-#     )
-#
-#     sentiment_dict = {}
-#
-#     for index in set_sentences:
-#         sentence = df_sentences.loc[index, 'sentence']
-#         result = sentiment_pipeline(sentence)[0]
-#
-#         # The result contains 'label' and 'score', e.g., {'label': 'POSITIVE', 'score': 0.99}
-#         if result['label'] == 'LABEL_2':  # Positive sentiment
-#             sentiment_dict[index] = 'positive'
-#         elif result['label'] == 'LABEL_0':  # Negative sentiment
-#             sentiment_dict[index] = 'negative'
-#         else:  # Neutral sentiment (depends on the model; may be labeled differently)
-#             sentiment_dict[index] = 'neutral'
-#
-#     return sentiment_dict
-#
-#
+def analyze_sentiment_advanced(set_sentences, df_sentences):
+    # Check if GPU is available and set the device accordingly
+    device = 0 if torch.cuda.is_available() else -1
+
+    # Load the sentiment analysis pipeline with the correct device
+    sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model="cardiffnlp/twitter-roberta-base-sentiment",
+        device=device
+    )
+
+    sentiment_dict = {}
+
+    for index in set_sentences:
+        sentence = df_sentences.loc[index, 'sentence']
+        result = sentiment_pipeline(sentence)[0]
+
+        # The result contains 'label' and 'score', e.g., {'label': 'POSITIVE', 'score': 0.99}
+        if result['label'] == 'LABEL_2':  # Positive sentiment
+            sentiment_dict[index] = 1
+        elif result['label'] == 'LABEL_0':  # Negative sentiment
+            sentiment_dict[index] = -1
+        else:  # Neutral sentiment (depends on the model; may be labeled differently)
+            sentiment_dict[index] = 0
+    return sentiment_dict
+
+
 
 
 def analyze_sentiment_vader(set_sentences, df_sentences):
@@ -434,17 +433,21 @@ def get_pair_sentences_from_pickle(path_pair_sentences, path_set_sentences):
 def main(paths) -> None:
     # todo: remove the pickle usage in the future
     df_sentences = pd.read_csv(paths["sentences"])
-    # df_characters = pd.read_csv(paths["characters"])
-    # dict_names_id = create_dict_names_id(df_characters)
-    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    # save_dict_names_id(dict_names_id, paths["names_id"])
-    # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    # save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
+    df_characters = pd.read_csv(paths["characters"])
+    dict_names_id = create_dict_names_id(df_characters)
+    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    save_dict_names_id(dict_names_id, paths["names_id"])
+    pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
+    save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
+    pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    save_pair_counts(pair_counts)
 
-    dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
-    pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
-    pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
-    indices_to_semantics = analyze_sentiment_vader(set_sentences, df_sentences)
+    # dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
+    # pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
+    # pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
+
+    indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences)
+
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
     # plot_louvain_communities(G, pos, resolution=1.7)
