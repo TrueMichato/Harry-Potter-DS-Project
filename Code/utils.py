@@ -1,3 +1,11 @@
+from transformers import pipeline
+import torch
+from datasets import Dataset
+
+
+
+
+
 PATH_SENTENCES = r"..\Data\harry_potter_sentences.csv"
 PATH_CHARACTERS = r"..\Data\character_names.csv"
 PATH_NAMES_ID = r"..\Data\dict_names_id.pkl"

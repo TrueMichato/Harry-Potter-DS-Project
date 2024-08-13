@@ -15,10 +15,9 @@ from cdlib import algorithms
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
-from transformers import pipeline
-import torch
-from datasets import Dataset
-
+from utils import *
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import numpy as np
 
 def check_special_family_names(name, sentence):
     # making sure it won't catch the wrong family member cause this family names are associated
@@ -265,8 +264,11 @@ def calc_semantic(indices, indices_to_semantics):
         sum_semantic+= indices_to_semantics[i]
     return sum_semantic
 
-def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indices_to_semantics, threshold_count=30):
+def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indices_to_semantics, threshold_count=30,
+                            model="cardiffnlp/twitter-roberta-base-sentiment"):
     G = nx.Graph()
+    pairs_model = {}
+
     for pair, count in pair_counts.items():
         if count < threshold_count:
             continue
@@ -277,6 +279,7 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
         if not G.has_edge(name1, name2):
             sum_semantic = calc_semantic(pairs_to_indices[pair], indices_to_semantics) / count
             G.add_edge(name1, name2, semantic=sum_semantic)
+            pairs_model[(name1, name2)] = sum_semantic
 
     # Make the graph sparse
     G = make_graph_sparse(G, fraction=0.2)
@@ -324,19 +327,24 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF', transform=cbar.ax.transAxes)
     cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000', transform=cbar.ax.transAxes)
 
+    # Add the model name to the title
+    ax.set_title(f"Semantic Relations Plot - Model: {model}", fontsize=12, fontweight='bold')
+
     ax.set_axis_off()
     plt.tight_layout()
     plt.show()
 
+    return pairs_model
 
-def analyze_sentiment_advanced(set_sentences, df_sentences):
+
+def analyze_sentiment_advanced(set_sentences, df_sentences, model):
     # Check if GPU is available and set the device accordingly
     device = 0 if torch.cuda.is_available() else -1
 
     # Load the sentiment analysis pipeline with the correct device
     sentiment_pipeline = pipeline(
         "sentiment-analysis",
-        model="cardiffnlp/twitter-roberta-base-sentiment",
+        model=model,
         device=device
     )
 
@@ -404,11 +412,6 @@ def analyze_sentiment_advanced(set_sentences, df_sentences):
 #     return sentiment_dict
 
 
-
-
-
-
-
 def analyze_sentiment_vader(set_sentences, df_sentences):
     analyzer = SentimentIntensityAnalyzer()
     sentiment_dict = {}
@@ -445,6 +448,22 @@ def analyze_sentiment_textblob(set_sentences, df_sentences):
             sentiment_dict[index] = 0  # Neutral sentiment
 
     return sentiment_dict
+
+
+def evaluate_model_against_experts(experts_tagging, model_results, tolerance=0.25):
+    correct_predictions = 0
+
+    for pair in experts_tagging:
+        if pair in model_results:
+            expert_value = experts_tagging[pair]
+            model_value = model_results[pair]
+
+            # Check if the model's result falls within the tolerance range of the expert's tagging
+            if expert_value - tolerance <= model_value <= expert_value + tolerance:
+                correct_predictions += 1
+
+    accuracy = correct_predictions / len(experts_tagging)
+    return accuracy
 
 
 def save_pair_counts(pair_counts, path_pair_counts) -> None:
@@ -496,21 +515,66 @@ def main(paths) -> None:
     # pair_counts = create_dict_connections(df_sentences, dict_names_id)
     # save_pair_counts(pair_counts, paths["pair_counts"])
 
+    # get data from the pickle files:
     dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
     pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
     pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
 
-    indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences)
-
+    # plots that represent the character relationships:
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=25)
-    # plot_louvain_communities(G, pos, resolution=1.7)
-    # plot_leiden_communities(G, pos, resolution=1.7)
-    # pair_counts = {(189, 42): 3, (32, 11): 2, (189, 11): 2}
-    # dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
-    # pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
-    # indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
-    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250)
+    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
+    # plot_louvain_communities(G, pos, resolution=1)
+    # plot_leiden_communities(G, pos, resolution=1)
+
+    # choose what model to run the sentiment analysis on:
+    # model = "cardiffnlp/twitter-roberta-base-sentiment"
+    # indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
+    model ="TextBlob"
+    indices_to_semantics = analyze_sentiment_textblob(set_sentences, df_sentences)
+
+    # plot the sentiment analysis graph:
+    model_results = plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250,
+                            model=model)
+
+    # check the accuracy of the semantic models:
+    experts_tagging = {
+        ('Harry Potter', 'Ron Weasley'): 1,
+        ('Hermione Granger', 'Harry Potter'): 1,
+        ('Hermione Granger', 'Ron Weasley'): 0.5,
+        ('Albus Dumbledore', 'Harry Potter'): 1,
+        ('Harry Potter', 'Rubeus Hagrid'): 1,
+        ('Harry Potter', 'Severus Snape'): -1,
+        ('Fred Weasley', 'George Weasley'): 1,
+        ('Sirius Black', 'Harry Potter'): 1,
+        ('Ginny Weasley', 'Harry Potter'): 1,
+        ('Ginny Weasley', 'Ron Weasley'): 0.5,
+        ('Fred Weasley', 'Harry Potter'): 1,
+        ('Vernon Dursley', 'Harry Potter'): -1,
+        ('George Weasley', 'Harry Potter'): 1,
+        ('Fred Weasley', 'Ron Weasley'): 1,
+        ('Harry Potter', 'Remus Lupin'): 1,
+        ('Dudley Dursley', 'Harry Potter'): -1,
+        ('Petunia Dursley', 'Vernon Dursley'): 1,
+        ('Harry Potter', 'Neville Longbottom'): 1,
+        ('George Weasley', 'Ron Weasley'): 1,
+        ('Harry Potter', 'Minerva McGonagall'): 0.5,
+        ('Dudley Dursley', 'Vernon Dursley'): 1,
+        ('Hermione Granger', 'Rubeus Hagrid'): 1,
+        ('Dudley Dursley', 'Petunia Dursley'): 1,
+        ('Albus Dumbledore', 'Ron Weasley'): 0.5,
+        ('Petunia Dursley', 'Harry Potter'): -1,
+        ('Ron Weasley', 'Rubeus Hagrid'): 1,
+        ('Albus Dumbledore', 'Hermione Granger'): 0.5,
+        ('Dolores Umbridge', 'Harry Potter'): -1,
+        ('Percy Weasley', 'Ron Weasley'): -0.5,
+        ('Bill Weasley', 'Ron Weasley'): 1,
+        ('Draco Malfoy', 'Harry Potter'): -1
+    }
+
+    # Evaluate model against experts
+    accuracy = evaluate_model_against_experts(experts_tagging, model_results)
+    print(f"Accuracy for model {model}:\n", accuracy)
+
 
 if __name__ == "__main__":
     main(PATHS)
