@@ -326,31 +326,31 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     plt.show()
 
 
-def analyze_sentiment_advanced(set_sentences, df_sentences):
-    # Check if GPU is available and set the device accordingly
-    device = 0 if torch.cuda.is_available() else -1
-
-    # Load the sentiment analysis pipeline with the correct device
-    sentiment_pipeline = pipeline(
-        "sentiment-analysis",
-        model="cardiffnlp/twitter-roberta-base-sentiment",
-        device=device
-    )
-
-    sentiment_dict = {}
-
-    for index in set_sentences:
-        sentence = df_sentences.loc[index, 'sentence']
-        result = sentiment_pipeline(sentence)[0]
-
-        # The result contains 'label' and 'score', e.g., {'label': 'POSITIVE', 'score': 0.99}
-        if result['label'] == 'LABEL_2':  # Positive sentiment
-            sentiment_dict[index] = 1
-        elif result['label'] == 'LABEL_0':  # Negative sentiment
-            sentiment_dict[index] = -1
-        else:  # Neutral sentiment (depends on the model; may be labeled differently)
-            sentiment_dict[index] = 0
-    return sentiment_dict
+# def analyze_sentiment_advanced(set_sentences, df_sentences):
+#     # Check if GPU is available and set the device accordingly
+#     device = 0 if torch.cuda.is_available() else -1
+#
+#     # Load the sentiment analysis pipeline with the correct device
+#     sentiment_pipeline = pipeline(
+#         "sentiment-analysis",
+#         model="cardiffnlp/twitter-roberta-base-sentiment",
+#         device=device
+#     )
+#
+#     sentiment_dict = {}
+#
+#     for index in set_sentences:
+#         sentence = df_sentences.loc[index, 'sentence']
+#         result = sentiment_pipeline(sentence)[0]
+#
+#         # The result contains 'label' and 'score', e.g., {'label': 'POSITIVE', 'score': 0.99}
+#         if result['label'] == 'LABEL_2':  # Positive sentiment
+#             sentiment_dict[index] = 1
+#         elif result['label'] == 'LABEL_0':  # Negative sentiment
+#             sentiment_dict[index] = -1
+#         else:  # Neutral sentiment (depends on the model; may be labeled differently)
+#             sentiment_dict[index] = 0
+#     return sentiment_dict
 
 
 
@@ -446,17 +446,17 @@ def main(paths) -> None:
     # pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
     # pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
 
-    indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences)
+    # indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences)
 
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
+    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=25)
     # plot_louvain_communities(G, pos, resolution=1.7)
     # plot_leiden_communities(G, pos, resolution=1.7)
     # pair_counts = {(189, 42): 3, (32, 11): 2, (189, 11): 2}
     # dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
     # pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
     # indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
-    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
+    # plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
 
 if __name__ == "__main__":
     main(PATHS)
