@@ -15,7 +15,9 @@ from cdlib import algorithms
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
-from utils import PATHS
+from utils import *
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import numpy as np
 from networkx.algorithms.community import partition_quality
 
 
@@ -268,9 +270,11 @@ def calc_semantic(indices, indices_to_semantics):
         sum_semantic += indices_to_semantics[i]
     return sum_semantic
 
-
-def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indices_to_semantics, threshold_count=30):
+def plot_sentiment_relations(pair_counts, dict_names_id, pairs_to_indices, indices_to_semantics, threshold_count=30,
+                            model="cardiffnlp/twitter-roberta-base-sentiment"):
     G = nx.Graph()
+    pairs_model = {}
+
     for pair, count in pair_counts.items():
         if count < threshold_count:
             continue
@@ -281,6 +285,7 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
         if not G.has_edge(name1, name2):
             sum_semantic = calc_semantic(pairs_to_indices[pair], indices_to_semantics) / count
             G.add_edge(name1, name2, semantic=sum_semantic)
+            pairs_model[(name1, name2)] = sum_semantic
 
     # Make the graph sparse
     G = make_graph_sparse(G, fraction=0.2)
@@ -292,10 +297,10 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     pos = {node: (x, y) for node, (x, y) in zip(nodes, pos_dict.values())}
 
     # Increase the figure size and create axes
-    fig, ax = plt.subplots(figsize=(20, 20))
+    fig, ax = plt.subplots(figsize=(8, 8))
 
     # Draw nodes
-    nx.draw_networkx_nodes(G, pos, node_color="blue", node_size=300)
+    nx.draw_networkx_nodes(G, pos, node_color="lightblue", node_size=300)
 
     # Draw edges with width proportional to weight
     edges = G.edges(data=True)
@@ -325,14 +330,55 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     cbar.set_ticks([])
 
     # Add labels at the ends of the colorbar
-    cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF',
-                 transform=cbar.ax.transAxes)
-    cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000',
-                 transform=cbar.ax.transAxes)
+    cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF', transform=cbar.ax.transAxes)
+    cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000', transform=cbar.ax.transAxes)
+
+    # Add the model name to the title
+    ax.set_title(f"Sentiment Relations Plot - Model: {model}", fontsize=12, fontweight='bold')
 
     ax.set_axis_off()
     plt.tight_layout()
     plt.show()
+
+    return pairs_model
+
+
+def analyze_sentiment_advanced(set_sentences, df_sentences, model):
+    # Check if GPU is available and set the device accordingly
+    device = 0 if torch.cuda.is_available() else -1
+
+    # Load the sentiment analysis pipeline with the correct device
+    sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model=model,
+        device=device
+    )
+
+    # Extract the sentences based on the set_sentences indices
+    sentences = df_sentences.loc[list(set_sentences), 'sentence'].tolist()
+
+    # Create a dataset from the sentences
+    dataset = Dataset.from_dict({"sentence": sentences})
+
+    # Apply the sentiment analysis in batch mode with an explicit batch size
+    def sentiment_analysis_batch(examples):
+        results = sentiment_pipeline(examples["sentence"])
+        return {"label": [result['label'] for result in results]}
+
+    # Increase the batch size to optimize GPU utilization
+    results = dataset.map(sentiment_analysis_batch, batched=True, batch_size=64)
+
+    # Convert results to a dictionary with indices as keys
+    sentiment_dict = {}
+    for idx, label in zip(set_sentences, results['label']):
+        if label == 'LABEL_2':  # Positive sentiment
+            sentiment_dict[idx] = 1
+        elif label == 'LABEL_0':  # Negative sentiment
+            sentiment_dict[idx] = -1
+        else:  # Neutral sentiment
+            sentiment_dict[idx] = 0
+
+    return sentiment_dict
 
 
 # def analyze_sentiment_advanced(set_sentences, df_sentences):
@@ -346,19 +392,29 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
 #         device=device
 #     )
 #
+#     # Extract the sentences based on the set_sentences indices
+#     sentences = df_sentences.loc[list(set_sentences), 'sentence'].tolist()
+#
+#     # Create a dataset from the sentences
+#     dataset = Dataset.from_dict({"sentence": sentences})
+#
+#     # Apply the sentiment analysis in batch mode
+#     def sentiment_analysis_batch(examples):
+#         results = sentiment_pipeline(examples["sentence"])
+#         return {"label": [result['label'] for result in results]}
+#
+#     results = dataset.map(sentiment_analysis_batch, batched=True)
+#
+#     # Convert results to a dictionary with indices as keys
 #     sentiment_dict = {}
+#     for idx, label in zip(set_sentences, results['label']):
+#         if label == 'LABEL_2':  # Positive sentiment
+#             sentiment_dict[idx] = 1
+#         elif label == 'LABEL_0':  # Negative sentiment
+#             sentiment_dict[idx] = -1
+#         else:  # Neutral sentiment
+#             sentiment_dict[idx] = 0
 #
-#     for index in set_sentences:
-#         sentence = df_sentences.loc[index, 'sentence']
-#         result = sentiment_pipeline(sentence)[0]
-#
-#         # The result contains 'label' and 'score', e.g., {'label': 'POSITIVE', 'score': 0.99}
-#         if result['label'] == 'LABEL_2':  # Positive sentiment
-#             sentiment_dict[index] = 1
-#         elif result['label'] == 'LABEL_0':  # Negative sentiment
-#             sentiment_dict[index] = -1
-#         else:  # Neutral sentiment (depends on the model; may be labeled differently)
-#             sentiment_dict[index] = 0
 #     return sentiment_dict
 
 
@@ -399,6 +455,58 @@ def analyze_sentiment_textblob(set_sentences, df_sentences):
 
     return sentiment_dict
 
+def calc_sentiment_accuracy(experts_tagging, model_results, tolerance=0.25):
+    # Find the range of model results
+    max_model_value = max(model_results.values())
+    min_model_value = min(model_results.values())
+    mid_model_value = (max_model_value + min_model_value) / 2
+
+    # Define the new tolerance based on the range
+    tolerance_range = (max_model_value - min_model_value) * tolerance
+
+    # Adjust the expert tagging values to match the model range
+    expert_adjusted = {}
+    for pair, value in experts_tagging.items():
+        if value == 1:
+            expert_adjusted[pair] = max_model_value
+        elif value == -1:
+            expert_adjusted[pair] = min_model_value
+        elif value == 0:
+            expert_adjusted[pair] = mid_model_value
+        elif value == 0.5:
+            expert_adjusted[pair] = (3 * max_model_value + min_model_value) / 4
+        elif value == -0.5:
+            expert_adjusted[pair] = (max_model_value + 3 * min_model_value) / 4
+
+    correct_predictions = 0
+
+    for pair in expert_adjusted:
+        if pair in model_results:
+            expert_value = expert_adjusted[pair]
+            model_value = model_results[pair]
+
+            # Check if the model's result falls within the tolerance range of the expert's tagging
+            if expert_value - tolerance_range <= model_value <= expert_value + tolerance_range:
+                correct_predictions += 1
+
+    accuracy = correct_predictions / len(expert_adjusted)
+    return accuracy
+
+
+def evaluate_model_against_experts(experts_tagging, model_results, tolerance=0.25):
+    correct_predictions = 0
+
+    for pair in experts_tagging:
+        if pair in model_results:
+            expert_value = experts_tagging[pair]
+            model_value = model_results[pair]
+
+            # Check if the model's result falls within the tolerance range of the expert's tagging
+            if expert_value - tolerance <= model_value <= expert_value + tolerance:
+                correct_predictions += 1
+
+    accuracy = correct_predictions / len(experts_tagging)
+    return accuracy
 
 def convert_dict_to_communities(partition):
     # Step 1: Create an empty dictionary to collect nodes by community
@@ -415,15 +523,87 @@ def convert_dict_to_communities(partition):
 
     return communities
 
-
 def eval_community_detection(G, partition):
     communities = convert_dict_to_communities(partition)
     return partition_quality(G, communities)
 
 
+
+def evaluate_model_precision_recall_f1(experts_tagging, model_results):
+    y_true = []
+    y_pred = []
+
+    for pair, expert_value in experts_tagging.items():
+        model_value = model_results[pair]
+
+        if expert_value > 0:
+            y_true.append(1)
+        elif expert_value < 0:
+            y_true.append(0)
+
+        if model_value > 0:
+            y_pred.append(1)  # Model predicts positive
+        else:
+            y_pred.append(0)  # Model predicts negative
+
+    # Calculate precision, recall, and f1 score
+    precision = precision_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+
+    return {"precision": precision, "recall": recall, "f1": f1}
+
+
 def save_pair_counts(pair_counts, path_pair_counts) -> None:
     with open(path_pair_counts, "wb") as f:
         pickle.dump(pair_counts, f)
+
+def print_model_evaluation(model, model_results):
+    # check the accuracy of the semantic models:
+    experts_tagging = {
+        ('Harry Potter', 'Ron Weasley'): 1,
+        ('Hermione Granger', 'Harry Potter'): 1,
+        ('Hermione Granger', 'Ron Weasley'): 0.5,
+        ('Albus Dumbledore', 'Harry Potter'): 1,
+        ('Harry Potter', 'Rubeus Hagrid'): 1,
+        ('Harry Potter', 'Severus Snape'): -1,
+        ('Fred Weasley', 'George Weasley'): 1,
+        ('Sirius Black', 'Harry Potter'): 1,
+        ('Ginny Weasley', 'Harry Potter'): 1,
+        ('Ginny Weasley', 'Ron Weasley'): 0.5,
+        ('Fred Weasley', 'Harry Potter'): 1,
+        ('Vernon Dursley', 'Harry Potter'): -1,
+        ('George Weasley', 'Harry Potter'): 1,
+        ('Fred Weasley', 'Ron Weasley'): 1,
+        ('Harry Potter', 'Remus Lupin'): 1,
+        ('Dudley Dursley', 'Harry Potter'): -1,
+        ('Petunia Dursley', 'Vernon Dursley'): 1,
+        ('Harry Potter', 'Neville Longbottom'): 1,
+        ('George Weasley', 'Ron Weasley'): 1,
+        ('Harry Potter', 'Minerva McGonagall'): 0.5,
+        ('Dudley Dursley', 'Vernon Dursley'): 1,
+        ('Hermione Granger', 'Rubeus Hagrid'): 1,
+        ('Dudley Dursley', 'Petunia Dursley'): 1,
+        ('Albus Dumbledore', 'Ron Weasley'): 0.5,
+        ('Petunia Dursley', 'Harry Potter'): -1,
+        ('Ron Weasley', 'Rubeus Hagrid'): 1,
+        ('Albus Dumbledore', 'Hermione Granger'): 0.5,
+        ('Dolores Umbridge', 'Harry Potter'): -1,
+        ('Percy Weasley', 'Ron Weasley'): -0.5,
+        ('Bill Weasley', 'Ron Weasley'): 1,
+        ('Draco Malfoy', 'Harry Potter'): -1
+    }
+
+    # Evaluate model against experts
+    accuracy = calc_sentiment_accuracy(experts_tagging, model_results)
+    print(f"Accuracy for model {model}:\n", accuracy)
+
+    metrics = evaluate_model_precision_recall_f1(experts_tagging, model_results)
+    print(f"Metrics for model {model}:")
+    print(f"Precision: {metrics['precision']}")
+    print(f"Recall: {metrics['recall']}")
+    print(f"F1 Score: {metrics['f1']}")
+
 
 
 def get_pair_counts_from_pickle(path_pair_counts) -> dict:
@@ -459,7 +639,7 @@ def get_pair_sentences_from_pickle(path_pair_sentences, path_set_sentences):
 
 
 def main(paths) -> None:
-    # todo: remove the pickle usage in the future
+    # # todo: remove the pickle usage in the future
     df_sentences = pd.read_csv(paths["sentences"])
     # df_characters = pd.read_csv(paths["characters"])
     # dict_names_id = create_dict_names_id(df_characters)
@@ -470,23 +650,29 @@ def main(paths) -> None:
     # pair_counts = create_dict_connections(df_sentences, dict_names_id)
     # save_pair_counts(pair_counts, paths["pair_counts"])
 
+    # get data from the pickle files:
     dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
     pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
-    # pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
+    pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
 
-    # indices_to_semantics = analyze_sentiment_vader(set_sentences, df_sentences)
-
+    # plots that represent the character relationships:
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
-    partition = plot_louvain_communities(G, pos, resolution=1.7)
-    node_communities = plot_leiden_communities(G, pos, resolution=1.7)
-    # plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250)
-    louvain_coverage, louvain_performance = eval_community_detection(G, partition)
-    leiden_coverage, leiden_performance = eval_community_detection(G, node_communities)
-    print("The coverage of the Louvain algorithm is " + str(
-        louvain_coverage) + "and the performance of the Louvain algorithm is " + str(louvain_performance))
-    print("The coverage of the Leiden algorithm is " + str(
-        leiden_coverage) + "and the performance of the Leiden algorithm is " + str(leiden_performance))
+    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
+    # plot_louvain_communities(G, pos, resolution=1)
+    # plot_leiden_communities(G, pos, resolution=1)
+
+    # run sentiment analysis on the sentences:
+    # model = "cardiffnlp/twitter-roberta-base-sentiment"
+    # indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
+    # model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250,
+    #                         model=model)
+    # print_model_evaluation(model, model_results)
+
+    model ="TextBlob"
+    indices_to_semantics = analyze_sentiment_textblob(set_sentences, df_sentences)
+    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250,
+                            model=model)
+    print_model_evaluation(model, model_results)
 
 
 if __name__ == "__main__":
