@@ -440,7 +440,7 @@ def main(paths) -> None:
     pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
     save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
     pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    save_pair_counts(pair_counts)
+    save_pair_counts(pair_counts, paths["pair_counts"])
 
     # dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
     # pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
