@@ -436,26 +436,26 @@ def get_pair_sentences_from_pickle():
 def main():
     # todo: remove the pickle usage in the future
     df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
-    # df_characters = pd.read_csv(r"..\Data\character_names.csv")
-    # dict_names_id = create_dict_names_id(df_characters)
-    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    # save_dict_names_id(dict_names_id)
-    # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    # save_pair_sentences(pair_sentences, set_sentences)
+    df_characters = pd.read_csv(r"..\Data\character_names.csv")
+    dict_names_id = create_dict_names_id(df_characters)
+    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=20)
+    save_dict_names_id(dict_names_id)
+    pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
+    save_pair_sentences(pair_sentences, set_sentences)
 
     dict_names_id = get_dict_names_id_from_pickle()
     pair_counts = get_pair_counts_from_pickle()
-    pair_sentences, set_sentences = get_pair_sentences_from_pickle()
-    indices_to_semantics = analyze_sentiment_vader(set_sentences, df_sentences)
+    # pair_sentences, set_sentences = get_pair_sentences_from_pickle()
+    # indices_to_semantics = analyze_sentiment_vader(set_sentences, df_sentences)
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
+    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=18)
     # plot_louvain_communities(G, pos, resolution=1.7)
     # plot_leiden_communities(G, pos, resolution=1.7)
     # pair_counts = {(189, 42): 3, (32, 11): 2, (189, 11): 2}
     # dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
     # pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
     # indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
-    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
+    # plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
 
 if __name__ == "__main__":
     main()
