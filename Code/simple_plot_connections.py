@@ -15,7 +15,7 @@ from cdlib import algorithms
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
-
+from utils import PATHS
 
 def check_special_family_names(name, sentence):
     # making sure it won't catch the wrong family member cause this family names are associated
@@ -459,18 +459,4 @@ def main(paths) -> None:
     plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
 
 if __name__ == "__main__":
-    PATH_SENTENCES =  "Data/harry_potter_sentences.csv" # r"..\Data\harry_potter_sentences.csv"
-    PATH_CHARACTERS = "Data/character_names.csv" # r"..\Data\character_names.csv"
-    PATH_NAMES_ID = "Data/dict_names_id.pkl" # r"..\Data\dict_names_id.pkl"
-    PATH_PAIR_COUNTS = "Data/pair_counts.pkl" # r"..\Data\pair_counts.pkl"
-    PATH_PAIR_SENTENCES = "Data/pair_sentences.pkl" # r"..\Data\pair_sentences.pkl"
-    PATH_SET_SENTENCES = "Data/set_sentences.pkl" # r"..\Data\set_sentences.pkl"
-    PATHS = {
-        "sentences": PATH_SENTENCES,
-        "characters": PATH_CHARACTERS,
-        "names_id": PATH_NAMES_ID,
-        "pair_counts": PATH_PAIR_COUNTS,
-        "pair_sentences": PATH_PAIR_SENTENCES,
-        "set_sentences": PATH_SET_SENTENCES,
-    }
     main(PATHS)
