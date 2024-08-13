@@ -256,7 +256,6 @@ def plot_leiden_communities(G, pos, colormap_name='tab10', resolution=1.0):
     return node_communities
 
 
-
 def calc_semantic(indices, indices_to_semantics):
     sum_semantic = 0
     for i in indices:
@@ -396,56 +395,56 @@ def analyze_sentiment_textblob(set_sentences, df_sentences):
     return sentiment_dict
 
 
-def save_pair_counts(pair_counts):
-    with open(r"..\Data\pair_counts.pkl", "wb") as f:
+def save_pair_counts(pair_counts, path_pair_counts) -> None:
+    with open(path_pair_counts, "wb") as f:
         pickle.dump(pair_counts, f)
 
 
-def get_pair_counts_from_pickle():
-    with open(r"..\Data\pair_counts.pkl", "rb") as f:
+def get_pair_counts_from_pickle(path_pair_counts) -> dict:
+    with open(path_pair_counts, "rb") as f:
         pair_counts = pickle.load(f)
     return pair_counts
 
 
-def save_dict_names_id(dict_names_id):
-    with open(r"..\Data\dict_names_id.pkl", "wb") as f:
+def save_dict_names_id(dict_names_id, path_names_id) -> None:
+    with open(path_names_id, "wb") as f:
         pickle.dump(dict_names_id, f)
 
 
-def get_dict_names_id_from_pickle():
-    with open(r"..\Data\dict_names_id.pkl", "rb") as f:
+def get_dict_names_id_from_pickle(path_names_id) -> dict:
+    with open(path_names_id, "rb") as f:
         dict_names_id = pickle.load(f)
     return dict_names_id
 
 
-def save_pair_sentences(pair_sentences, set_sentences):
-    with open(r"..\Data\pair_sentences.pkl", "wb") as f:
+def save_pair_sentences(pair_sentences, set_sentences, path_pair_sentences, path_set_sentences) -> None:
+    with open(path_pair_sentences, "wb") as f:
         pickle.dump(pair_sentences, f)
-    with open(r"..\Data\set_sentences.pkl", "wb") as f:
+    with open(path_set_sentences, "wb") as f:
         pickle.dump(set_sentences, f)
 
 
-def get_pair_sentences_from_pickle():
-    with open(r"..\Data\pair_sentences.pkl", "rb") as f:
+def get_pair_sentences_from_pickle(path_pair_sentences, path_set_sentences):
+    with open(path_pair_sentences, "rb") as f:
         pair_sentences = pickle.load(f)
-    with open(r"..\Data\set_sentences.pkl", "rb") as f:
+    with open(path_set_sentences, "rb") as f:
         set_sentences = pickle.load(f)
     return pair_sentences, set_sentences
 
 
-def main():
+def main(paths) -> None:
     # todo: remove the pickle usage in the future
-    df_sentences = pd.read_csv(r"..\Data\harry_potter_sentences.csv")
-    # df_characters = pd.read_csv(r"..\Data\character_names.csv")
+    df_sentences = pd.read_csv(paths["sentences"])
+    # df_characters = pd.read_csv(paths["characters"])
     # dict_names_id = create_dict_names_id(df_characters)
     # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    # save_dict_names_id(dict_names_id)
+    # save_dict_names_id(dict_names_id, paths["names_id"])
     # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    # save_pair_sentences(pair_sentences, set_sentences)
+    # save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
 
-    dict_names_id = get_dict_names_id_from_pickle()
-    pair_counts = get_pair_counts_from_pickle()
-    pair_sentences, set_sentences = get_pair_sentences_from_pickle()
+    dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
+    pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
+    pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
     indices_to_semantics = analyze_sentiment_vader(set_sentences, df_sentences)
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
@@ -458,4 +457,18 @@ def main():
     plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
 
 if __name__ == "__main__":
-    main()
+    PATH_SENTENCES =  "Data/arry_potter_sentences.csv" # r"..\Data\harry_potter_sentences.csv"
+    PATH_CHARACTERS = "Data/character_names.csv" # r"..\Data\character_names.csv"
+    PATH_NAMES_ID = "Data/dict_names_id.pkl" # r"..\Data\dict_names_id.pkl"
+    PATH_PAIR_COUNTS = "Data/pair_counts.pkl" # r"..\Data\pair_counts.pkl"
+    PATH_PAIR_SENTENCES = "Data/pair_sentences.pkl" # r"..\Data\pair_sentences.pkl"
+    PATH_SET_SENTENCES = "Data/set_sentences.pkl" # r"..\Data\set_sentences.pkl"
+    PATHS = {
+        "sentences": PATH_SENTENCES,
+        "characters": PATH_CHARACTERS,
+        "names_id": PATH_NAMES_ID,
+        "pair_counts": PATH_PAIR_COUNTS,
+        "pair_sentences": PATH_PAIR_SENTENCES,
+        "set_sentences": PATH_SET_SENTENCES,
+    }
+    main(PATHS)
