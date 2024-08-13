@@ -284,8 +284,8 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     # Create a position mapping for node names
     pos = {node: (x, y) for node, (x, y) in zip(nodes, pos_dict.values())}
 
-    # Increase the figure size
-    plt.figure(figsize=(20, 20))
+    # Increase the figure size and create axes
+    fig, ax = plt.subplots(figsize=(20, 20))
 
     # Draw nodes
     nx.draw_networkx_nodes(G, pos, node_color="blue", node_size=300)
@@ -306,27 +306,26 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     # Draw labels
     nx.draw_networkx_labels(G, pos, font_size=5, font_color='black', font_weight='bold')
 
+    # Create a new axes for the colorbar
+    cax = fig.add_axes([0.2, 0.05, 0.6, 0.02])  # [left, bottom, width, height]
 
     # Create the colorbar
-    fig = plt.gcf()
-    ax = fig.add_axes([0.1, 0.05, 0.6, 0.02])  # Adjust size and position
-
     sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
     sm.set_array([])  # We don't actually need an array here
+    cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
 
-    cbar = plt.colorbar(sm, cax=ax, orientation='horizontal')
-    cbar.set_ticks([0, 1])
-    cbar.set_ticklabels(['Negative Relationship', 'Positive Relationship'])
+    # Remove ticks from the colorbar
+    cbar.set_ticks([])
 
-    # Add labels next to the colorbar
-    cbar.ax.text(-1, 2.7, 'Negative Relationship', va='top', ha='left', fontsize=10, color='#0000FF')
-    cbar.ax.text(1, 2.7, 'Positive Relationship', va='top', ha='right', fontsize=10, color='#FF0000')
+    # Add labels at the ends of the colorbar
+    cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF', transform=cbar.ax.transAxes)
+    cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000', transform=cbar.ax.transAxes)
 
-    # plt.title("Character Relationship Network")
-    plt.axis('off')
+    ax.set_axis_off()
+    plt.tight_layout()
     plt.show()
+    
 
-#
 # def analyze_sentiment_advanced(set_sentences, df_sentences):
 #     # Check if GPU is available and set the device accordingly
 #     device = 0 if torch.cuda.is_available() else -1
@@ -457,7 +456,7 @@ def main(paths) -> None:
     plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
 
 if __name__ == "__main__":
-    PATH_SENTENCES =  "Data/arry_potter_sentences.csv" # r"..\Data\harry_potter_sentences.csv"
+    PATH_SENTENCES =  "Data/harry_potter_sentences.csv" # r"..\Data\harry_potter_sentences.csv"
     PATH_CHARACTERS = "Data/character_names.csv" # r"..\Data\character_names.csv"
     PATH_NAMES_ID = "Data/dict_names_id.pkl" # r"..\Data\dict_names_id.pkl"
     PATH_PAIR_COUNTS = "Data/pair_counts.pkl" # r"..\Data\pair_counts.pkl"
