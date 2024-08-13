@@ -15,6 +15,9 @@ from cdlib import algorithms
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
+from transformers import pipeline
+import torch
+from datasets import Dataset
 
 
 def check_special_family_names(name, sentence):
@@ -285,10 +288,10 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     pos = {node: (x, y) for node, (x, y) in zip(nodes, pos_dict.values())}
 
     # Increase the figure size and create axes
-    fig, ax = plt.subplots(figsize=(20, 20))
+    fig, ax = plt.subplots(figsize=(8, 8))
 
     # Draw nodes
-    nx.draw_networkx_nodes(G, pos, node_color="blue", node_size=300)
+    nx.draw_networkx_nodes(G, pos, node_color="lightblue", node_size=300)
 
     # Draw edges with width proportional to weight
     edges = G.edges(data=True)
@@ -324,7 +327,7 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     ax.set_axis_off()
     plt.tight_layout()
     plt.show()
-    
+
 
 def analyze_sentiment_advanced(set_sentences, df_sentences):
     # Check if GPU is available and set the device accordingly
@@ -337,20 +340,71 @@ def analyze_sentiment_advanced(set_sentences, df_sentences):
         device=device
     )
 
+    # Extract the sentences based on the set_sentences indices
+    sentences = df_sentences.loc[list(set_sentences), 'sentence'].tolist()
+
+    # Create a dataset from the sentences
+    dataset = Dataset.from_dict({"sentence": sentences})
+
+    # Apply the sentiment analysis in batch mode with an explicit batch size
+    def sentiment_analysis_batch(examples):
+        results = sentiment_pipeline(examples["sentence"])
+        return {"label": [result['label'] for result in results]}
+
+    # Increase the batch size to optimize GPU utilization
+    results = dataset.map(sentiment_analysis_batch, batched=True, batch_size=64)
+
+    # Convert results to a dictionary with indices as keys
     sentiment_dict = {}
+    for idx, label in zip(set_sentences, results['label']):
+        if label == 'LABEL_2':  # Positive sentiment
+            sentiment_dict[idx] = 1
+        elif label == 'LABEL_0':  # Negative sentiment
+            sentiment_dict[idx] = -1
+        else:  # Neutral sentiment
+            sentiment_dict[idx] = 0
 
-    for index in set_sentences:
-        sentence = df_sentences.loc[index, 'sentence']
-        result = sentiment_pipeline(sentence)[0]
-
-        # The result contains 'label' and 'score', e.g., {'label': 'POSITIVE', 'score': 0.99}
-        if result['label'] == 'LABEL_2':  # Positive sentiment
-            sentiment_dict[index] = 1
-        elif result['label'] == 'LABEL_0':  # Negative sentiment
-            sentiment_dict[index] = -1
-        else:  # Neutral sentiment (depends on the model; may be labeled differently)
-            sentiment_dict[index] = 0
     return sentiment_dict
+
+
+# def analyze_sentiment_advanced(set_sentences, df_sentences):
+#     # Check if GPU is available and set the device accordingly
+#     device = 0 if torch.cuda.is_available() else -1
+#
+#     # Load the sentiment analysis pipeline with the correct device
+#     sentiment_pipeline = pipeline(
+#         "sentiment-analysis",
+#         model="cardiffnlp/twitter-roberta-base-sentiment",
+#         device=device
+#     )
+#
+#     # Extract the sentences based on the set_sentences indices
+#     sentences = df_sentences.loc[list(set_sentences), 'sentence'].tolist()
+#
+#     # Create a dataset from the sentences
+#     dataset = Dataset.from_dict({"sentence": sentences})
+#
+#     # Apply the sentiment analysis in batch mode
+#     def sentiment_analysis_batch(examples):
+#         results = sentiment_pipeline(examples["sentence"])
+#         return {"label": [result['label'] for result in results]}
+#
+#     results = dataset.map(sentiment_analysis_batch, batched=True)
+#
+#     # Convert results to a dictionary with indices as keys
+#     sentiment_dict = {}
+#     for idx, label in zip(set_sentences, results['label']):
+#         if label == 'LABEL_2':  # Positive sentiment
+#             sentiment_dict[idx] = 1
+#         elif label == 'LABEL_0':  # Negative sentiment
+#             sentiment_dict[idx] = -1
+#         else:  # Neutral sentiment
+#             sentiment_dict[idx] = 0
+#
+#     return sentiment_dict
+
+
+
 
 
 
@@ -431,40 +485,40 @@ def get_pair_sentences_from_pickle(path_pair_sentences, path_set_sentences):
 
 
 def main(paths) -> None:
-    # todo: remove the pickle usage in the future
+    # # todo: remove the pickle usage in the future
     df_sentences = pd.read_csv(paths["sentences"])
-    df_characters = pd.read_csv(paths["characters"])
-    dict_names_id = create_dict_names_id(df_characters)
-    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    save_dict_names_id(dict_names_id, paths["names_id"])
-    pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
-    pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    save_pair_counts(pair_counts)
+    # df_characters = pd.read_csv(paths["characters"])
+    # dict_names_id = create_dict_names_id(df_characters)
+    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    # save_dict_names_id(dict_names_id, paths["names_id"])
+    # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
+    # save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
+    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    # save_pair_counts(pair_counts, paths["pair_counts"])
 
-    # dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
-    # pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
-    # pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
+    dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
+    pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
+    pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
 
     indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences)
 
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=15)
+    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=25)
     # plot_louvain_communities(G, pos, resolution=1.7)
     # plot_leiden_communities(G, pos, resolution=1.7)
     # pair_counts = {(189, 42): 3, (32, 11): 2, (189, 11): 2}
     # dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
     # pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
     # indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
-    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
+    plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250)
 
 if __name__ == "__main__":
-    PATH_SENTENCES =  "Data/harry_potter_sentences.csv" # r"..\Data\harry_potter_sentences.csv"
-    PATH_CHARACTERS = "Data/character_names.csv" # r"..\Data\character_names.csv"
-    PATH_NAMES_ID = "Data/dict_names_id.pkl" # r"..\Data\dict_names_id.pkl"
-    PATH_PAIR_COUNTS = "Data/pair_counts.pkl" # r"..\Data\pair_counts.pkl"
-    PATH_PAIR_SENTENCES = "Data/pair_sentences.pkl" # r"..\Data\pair_sentences.pkl"
-    PATH_SET_SENTENCES = "Data/set_sentences.pkl" # r"..\Data\set_sentences.pkl"
+    PATH_SENTENCES =  r"..\Data\harry_potter_sentences.csv" # r"..\Data\harry_potter_sentences.csv"
+    PATH_CHARACTERS = r"..\Data\character_names.csv" # r"..\Data\character_names.csv"
+    PATH_NAMES_ID = r"..\Data\dict_names_id.pkl" # r"..\Data\dict_names_id.pkl"
+    PATH_PAIR_COUNTS = r"..\Data\pair_counts.pkl" # r"..\Data\pair_counts.pkl"
+    PATH_PAIR_SENTENCES = r"..\Data\pair_sentences.pkl" # r"..\Data\pair_sentences.pkl"
+    PATH_SET_SENTENCES = r"..\Data\set_sentences.pkl" # r"..\Data\set_sentences.pkl"
     PATHS = {
         "sentences": PATH_SENTENCES,
         "characters": PATH_CHARACTERS,
