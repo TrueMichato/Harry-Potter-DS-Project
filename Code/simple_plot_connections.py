@@ -16,6 +16,8 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
 from utils import PATHS
+from networkx.algorithms.community import partition_quality
+
 
 def check_special_family_names(name, sentence):
     # making sure it won't catch the wrong family member cause this family names are associated
@@ -209,6 +211,8 @@ def plot_louvain_communities(G, pos, colormap_name='tab10', resolution=1.0):
     plt.title(f"Louvain Community Detection - {num_communities} Communities Detected (Resolution={resolution})")
     plt.show()
 
+    return partition
+
 
 def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
     G = nx.Graph()
@@ -222,6 +226,7 @@ def create_weighted_graph(pair_counts, dict_names_id, threshold_count=3):
         if not G.has_edge(name1, name2):
             G.add_edge(name1, name2, weight=count)
     return G
+
 
 def plot_leiden_communities(G, pos, colormap_name='tab10', resolution=1.0):
     # Convert the NetworkX graph to an iGraph graph with edge weights
@@ -250,7 +255,8 @@ def plot_leiden_communities(G, pos, colormap_name='tab10', resolution=1.0):
     # Draw labels
     nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", font_color='black')
 
-    plt.title(f"Leiden Community Detection with Weights - {num_communities} Communities Detected (Resolution={resolution})")
+    plt.title(
+        f"Leiden Community Detection with Weights - {num_communities} Communities Detected (Resolution={resolution})")
     plt.show()
 
     return node_communities
@@ -259,8 +265,9 @@ def plot_leiden_communities(G, pos, colormap_name='tab10', resolution=1.0):
 def calc_semantic(indices, indices_to_semantics):
     sum_semantic = 0
     for i in indices:
-        sum_semantic+= indices_to_semantics[i]
+        sum_semantic += indices_to_semantics[i]
     return sum_semantic
+
 
 def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indices_to_semantics, threshold_count=30):
     G = nx.Graph()
@@ -318,8 +325,10 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
     cbar.set_ticks([])
 
     # Add labels at the ends of the colorbar
-    cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF', transform=cbar.ax.transAxes)
-    cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000', transform=cbar.ax.transAxes)
+    cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF',
+                 transform=cbar.ax.transAxes)
+    cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000',
+                 transform=cbar.ax.transAxes)
 
     ax.set_axis_off()
     plt.tight_layout()
@@ -351,8 +360,6 @@ def plot_semantic_relations(pair_counts, dict_names_id, pairs_to_indices, indice
 #         else:  # Neutral sentiment (depends on the model; may be labeled differently)
 #             sentiment_dict[index] = 0
 #     return sentiment_dict
-
-
 
 
 def analyze_sentiment_vader(set_sentences, df_sentences):
@@ -391,6 +398,27 @@ def analyze_sentiment_textblob(set_sentences, df_sentences):
             sentiment_dict[index] = 0  # Neutral sentiment
 
     return sentiment_dict
+
+
+def convert_dict_to_communities(partition):
+    # Step 1: Create an empty dictionary to collect nodes by community
+    community_dict = {}
+
+    # Step 2: Iterate through the original dictionary
+    for node, community in partition.items():
+        if community not in community_dict:
+            community_dict[community] = set()
+        community_dict[community].add(node)
+
+    # Step 3: Convert the dictionary values to a list of sets
+    communities = list(community_dict.values())
+
+    return communities
+
+
+def eval_community_detection(G, partition):
+    communities = convert_dict_to_communities(partition)
+    return partition_quality(G, communities)
 
 
 def save_pair_counts(pair_counts, path_pair_counts) -> None:
@@ -433,30 +461,33 @@ def get_pair_sentences_from_pickle(path_pair_sentences, path_set_sentences):
 def main(paths) -> None:
     # todo: remove the pickle usage in the future
     df_sentences = pd.read_csv(paths["sentences"])
-    df_characters = pd.read_csv(paths["characters"])
-    dict_names_id = create_dict_names_id(df_characters)
-    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    save_dict_names_id(dict_names_id, paths["names_id"])
-    pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
-    pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    save_pair_counts(pair_counts, paths["pair_counts"])
+    # df_characters = pd.read_csv(paths["characters"])
+    # dict_names_id = create_dict_names_id(df_characters)
+    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    # save_dict_names_id(dict_names_id, paths["names_id"])
+    # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
+    # save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
+    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    # save_pair_counts(pair_counts, paths["pair_counts"])
 
-    # dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
-    # pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
+    dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
+    pair_counts = get_pair_counts_from_pickle(paths["pair_counts"])
     # pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
 
-    # indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences)
+    # indices_to_semantics = analyze_sentiment_vader(set_sentences, df_sentences)
 
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=25)
-    # plot_louvain_communities(G, pos, resolution=1.7)
-    # plot_leiden_communities(G, pos, resolution=1.7)
-    # pair_counts = {(189, 42): 3, (32, 11): 2, (189, 11): 2}
-    # dict_names_id = {42: ["Harry", "Daniel"], 189: ["Albus", "Brian"], 32: ["Severus", "Alan"], 11: ["Hermione", "Emma"]}
-    # pairs_to_indices = {(189, 42): [0, 1, 2], (32, 11): [3, 4, 5], (189, 11): [1, 2]}
-    # indices_to_semantics = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1}
-    # plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=300)
+    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
+    partition = plot_louvain_communities(G, pos, resolution=1.7)
+    node_communities = plot_leiden_communities(G, pos, resolution=1.7)
+    # plot_semantic_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250)
+    louvain_coverage, louvain_performance = eval_community_detection(G, partition)
+    leiden_coverage, leiden_performance = eval_community_detection(G, node_communities)
+    print("The coverage of the Louvain algorithm is " + str(
+        louvain_coverage) + "and the performance of the Louvain algorithm is " + str(louvain_performance))
+    print("The coverage of the Leiden algorithm is " + str(
+        leiden_coverage) + "and the performance of the Leiden algorithm is " + str(leiden_performance))
+
 
 if __name__ == "__main__":
     main(PATHS)
