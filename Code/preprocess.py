@@ -42,7 +42,7 @@ def create_dict_names_id(df_characters) -> dict:
     return dict_id_names
 
 
-def reverse_dict(dict_names_id) -> dict:
+def reverse_dict(dict_names_id: dict) -> dict:
     dict_id_names = {}
     for id_, names in dict_names_id.items():
         for name in names:
@@ -117,7 +117,12 @@ def put_together(words: list) -> str:
     sentence = words[0]
 
     for word in words[1:]:
-        if word.isalnum() or (word in ["'", '"']) or ("." in word or "_" in word):
+        if (
+            word.isalnum()
+            or (word in ["'", '"'])
+            or ("." in word or "_" in word)
+            or re.match(r"^\w+\ and .*", word)
+        ):
             sentence += " " + word
         else:
             sentence += word
@@ -131,7 +136,7 @@ def put_together(words: list) -> str:
     )
 
 
-def preprocess_text(text: str, chapter: int, book: str) -> str:
+def preprocess_text(text: str, chapter: int, book: str, character_names: list) -> str:
     print(f"preprocessing {book=}, {chapter=}")
     text = solve_couple(text)
     text = solve_mrs_mr_issue(text)
