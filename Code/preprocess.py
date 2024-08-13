@@ -182,7 +182,7 @@ def fix_unique_names() -> None:
     df_characters.to_csv("Data/character_names.csv", index=False)
 
 
-def get_character_names() -> list:
+def get_character_names() -> set:
     df_characters = pd.read_csv("Data/character_names.csv")
 
     dict_names_id = create_dict_names_id(df_characters)
@@ -241,17 +241,21 @@ def create_sentences_data(fix_text: bool = False) -> None:
         lambda x: tk.sent_tokenize(x)
     )
 
-    preprocessed_data.to_csv("Data/harry_potter_books_preprocessed.csv", index=False)
+    # preprocessed_data.to_csv("Data/harry_potter_books_preprocessed.csv", index=False)
 
     # create a list of all sentences, without book or chapter affiliation
-    all_sentences = [
-        sentence
-        for sentences in preprocessed_data["sentences"]
-        for sentence in sentences
-    ]
-    all_sentences_df = pd.DataFrame(all_sentences, columns=["sentence"])
+    all_sentences = []
+    for index, row in preprocessed_data.iterrows():
+        book = row['book']
+        chapter = row['chapter']
+        sentences = row['sentences']
+        for sentence in sentences:
+            all_sentences.append({'sentence': sentence, 'book': book, 'chapter': chapter})
+    
+    all_sentences_df = pd.DataFrame(all_sentences)
 
     all_sentences_df.to_csv("Data/harry_potter_sentences.csv", index=False)
+
 
 
 if __name__ == "__main__":
