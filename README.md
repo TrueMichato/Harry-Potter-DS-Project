@@ -7,6 +7,7 @@ Contributors: Maya Cohen, Mika Littor, Tomer Michaeli
 - dynamic_plots.py: Creates dynamic plots of character connections.
 - plot_connections.py: Generates simple plots, page rank, community detection and evaluations.
 - utils.py
+- synamic_utils.py
 
 ## Data Folder:
 - HPCharactersData.csv: The original data of the characters. 
