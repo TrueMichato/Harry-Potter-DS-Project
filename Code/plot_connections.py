@@ -473,6 +473,8 @@ def plot_sentiment_relations(pair_counts: dict, dict_names_id: dict, pairs_to_in
     return pairs_model
 
 
+
+
 def analyze_sentiment_advanced(set_sentences: set, df_sentences: pd.DataFrame, model: str) -> dict:
     """
     Performs sentiment analysis on a set of sentences using a specified model and returns a dictionary of sentiment scores.
@@ -844,23 +846,28 @@ def main(paths) -> None:
     # plots that represent the character relationships:
     # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
-    plot_louvain_communities(G, pos, resolution=1.7)
-    plot_leiden_communities(G, pos, resolution=1.7)
+    partition = plot_louvain_communities(G, pos, resolution=1.7)
+    node_communities = plot_leiden_communities(G, pos, resolution=1.7)
 
     # run sentiment analysis on the sentences:
-    model = "cardiffnlp/twitter-roberta-base-sentiment"
-    indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
-    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
-                                             threshold_count=250,
-                                             model=model)
-    print_model_evaluation(model, model_results)
-
-    model = "TextBlob"
-    indices_to_semantics = analyze_sentiment_textblob(set_sentences, df_sentences)
-    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
-                                             threshold_count=250,
-                                             model=model)
-    print_model_evaluation(model, model_results)
+    # model = "cardiffnlp/twitter-roberta-base-sentiment"
+    # indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
+    # model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
+    #                                          threshold_count=250,
+    #                                          model=model)
+    # print_model_evaluation(model, model_results)
+    #
+    # model = "TextBlob"
+    # indices_to_semantics = analyze_sentiment_textblob(set_sentences, df_sentences)
+    # model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
+    #                                          threshold_count=250,
+    #                                          model=model)
+    # print_model_evaluation(model, model_results)
+    coverage_louvain, performance_louvain = eval_community_detection(G, partition)
+    coverage_leiden, performance_leiden = eval_community_detection(G, node_communities)
+    print(
+        "For Louvain's partition the coverage is " + coverage_louvain + " and the performance is " + performance_louvain)
+    print("For Leiden's partition the coverage is " + coverage_leiden + " and the performance is " + performance_leiden)
 
 
 if __name__ == "__main__":
