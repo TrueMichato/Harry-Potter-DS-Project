@@ -476,12 +476,12 @@ def plot_sentiment_relations(pair_counts: dict, dict_names_id: dict, pairs_to_in
 def analyze_sentiment_advanced(set_sentences: set, df_sentences: pd.DataFrame, model: str) -> dict:
     """
     Performs sentiment analysis on a set of sentences using a specified model and returns a dictionary of sentiment scores.
-    
+
     Args:
         set_sentences (set): A set of sentence indices.
         df_sentences (pd.DataFrame): A DataFrame containing sentences.
         model (str): The name of the sentiment analysis model to use.
-        
+
     Returns:
         dict: A dictionary mapping sentence indices to sentiment scores.
     """
@@ -827,14 +827,14 @@ def get_pair_sentences_from_pickle(path_pair_sentences: str, path_set_sentences:
 
 def main(paths) -> None:
     df_sentences = pd.read_csv(paths["sentences"])
-    df_characters = pd.read_csv(paths["characters"])
-    dict_names_id = create_dict_names_id(df_characters)
-    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    save_dict_names_id(dict_names_id, paths["names_id"])
-    pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
-    pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    save_pair_counts(pair_counts, paths["pair_counts"])
+    # df_characters = pd.read_csv(paths["characters"])
+    # dict_names_id = create_dict_names_id(df_characters)
+    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    # save_dict_names_id(dict_names_id, paths["names_id"])
+    # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
+    # save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
+    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    # save_pair_counts(pair_counts, paths["pair_counts"])
 
     # get data from the pickle files:
     dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
@@ -842,7 +842,7 @@ def main(paths) -> None:
     pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
 
     # plots that represent the character relationships:
-    plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
+    # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
     G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
     plot_louvain_communities(G, pos, resolution=1.7)
     plot_leiden_communities(G, pos, resolution=1.7)
