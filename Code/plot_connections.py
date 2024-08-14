@@ -16,6 +16,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import numpy as np
 from networkx.algorithms.community import partition_quality
 
+
 def check_special_family_names(name: str, sentence: str) -> bool:
     """
     Checks if a family name in a sentence is associated with a specific main character.
@@ -39,6 +40,7 @@ def check_special_family_names(name: str, sentence: str) -> bool:
         if name == "Malfoy":
             return prev_word in ["Mr.", "Draco"]
     return True
+
 
 def check_special_family_names(name: str, sentence: str) -> bool:
     pattern = r'\b(\w+)\b\s+' + re.escape(name) + r'\b'
@@ -78,7 +80,6 @@ def remove_characters_below_threshold(dict_names_id: dict, df_sentences: pd.Data
     return filtered_dict
 
 
-
 def create_dict_connections(df_sentences: pd.DataFrame, dict_names_id: dict) -> dict:
     """
     Creates a dictionary of character pairs - if both characters appear in the same sentence,
@@ -90,7 +91,7 @@ def create_dict_connections(df_sentences: pd.DataFrame, dict_names_id: dict) -> 
 
     Returns:
         dict: Dictionary with character pair counts.
-    """ 
+    """
     df_sentences['character_pairs'] = df_sentences['sentence'].apply(
         lambda x: find_character_id_pairs(x, dict_names_id))
     df_exploded = df_sentences.explode('character_pairs').dropna(subset=['character_pairs'])
@@ -162,8 +163,8 @@ def create_pair_sentences(df_sentences: pd.DataFrame, dict_names_id: dict) -> tu
     non_empty_indexes = set()
 
     for index, pairs in df_sentences[['character_pairs']].iterrows():
-        if pairs['character_pairs']:  
-            non_empty_indexes.add(index) 
+        if pairs['character_pairs']:
+            non_empty_indexes.add(index)
             for pair in pairs['character_pairs']:
                 if pair not in pair_dict:
                     pair_dict[pair] = [index]
@@ -246,7 +247,7 @@ def plot_page_rank(pair_count: dict, dict_names_id: dict, threshold_count: int) 
     """
     Plots a PageRank-based graph of character relationships. 
     The pagerank controls the size and color of the nodes, 
-    while the weight of the edges controls their the color intensity. 
+    while the weight of the edges controls their color intensity.
 
     Args:
         pair_count (dict): Dictionary of character pair counts.
@@ -264,15 +265,15 @@ def plot_page_rank(pair_count: dict, dict_names_id: dict, threshold_count: int) 
 
     pos = {node: (x, y) for node, (x, y) in zip(nodes, pos_dict.values())}
 
-    min_node_size = 100 
-    scaling_factor = 5000  
+    min_node_size = 100
+    scaling_factor = 5000
     node_sizes = [max(pagerank_scores[node] * scaling_factor, min_node_size) for node in
-                  nodes]  
+                  nodes]
     min_value = min(node_sizes)
     max_value = max(node_sizes)
     norm = plt.Normalize(vmin=min_value, vmax=max_value)
-    colormap = plt.colormaps['winter_r']  
-    colors = colormap(norm(node_sizes)) 
+    colormap = plt.colormaps['winter_r']
+    colors = colormap(norm(node_sizes))
 
     plt.figure(figsize=(20, 20))
     nx.draw_networkx_nodes(G, pos, node_color=colors, node_size=node_sizes)
@@ -292,7 +293,7 @@ def plot_page_rank(pair_count: dict, dict_names_id: dict, threshold_count: int) 
     return G, pos
 
 
-def plot_louvain_communities(G: nx.Graph, pos: dict, colormap_name: str='tab10', resolution: float=1.0):
+def plot_louvain_communities(G: nx.Graph, pos: dict, colormap_name: str = 'tab10', resolution: float = 1.0):
     """
     Detects communities within a graph using the Louvain method and plots the resulting communities.
     
@@ -324,7 +325,7 @@ def plot_louvain_communities(G: nx.Graph, pos: dict, colormap_name: str='tab10',
     return partition
 
 
-def create_weighted_graph(pair_counts: dict, dict_names_id: dict, threshold_count: int=3) -> nx.Graph:
+def create_weighted_graph(pair_counts: dict, dict_names_id: dict, threshold_count: int = 3) -> nx.Graph:
     """
     Creates a weighted graph based on character pair counts, excluding pairs below a threshold count.
     
@@ -350,7 +351,7 @@ def create_weighted_graph(pair_counts: dict, dict_names_id: dict, threshold_coun
     return G
 
 
-def plot_leiden_communities(G: nx.Graph, pos: dict, colormap_name: str='tab10', resolution: float=1.0) -> dict:
+def plot_leiden_communities(G: nx.Graph, pos: dict, colormap_name: str = 'tab10', resolution: float = 1.0) -> dict:
     """
     Detects communities within a graph using the Leiden method and plots the resulting communities.
     
@@ -388,6 +389,7 @@ def plot_leiden_communities(G: nx.Graph, pos: dict, colormap_name: str='tab10', 
 
     return node_communities
 
+
 def calc_semantic(indices: list, indices_to_semantics: list) -> float:
     """
     Calculates the sum of semantic values for given indices.
@@ -398,13 +400,16 @@ def calc_semantic(indices: list, indices_to_semantics: list) -> float:
         
     Returns:
         float: The sum of semantic values.
-    """    
+    """
     sum_semantic = 0
     for i in indices:
         sum_semantic += indices_to_semantics[i]
     return sum_semantic
 
-def plot_sentiment_relations(pair_counts: dict, dict_names_id: dict, pairs_to_indices: dict, indices_to_semantics: dict, threshold_count: int=30, model: str="cardiffnlp/twitter-roberta-base-sentiment") -> dict:
+
+def plot_sentiment_relations(pair_counts: dict, dict_names_id: dict, pairs_to_indices: dict, indices_to_semantics: dict,
+                             threshold_count: int = 30,
+                             model: str = "cardiffnlp/twitter-roberta-base-sentiment") -> dict:
     """
     Plots a graph of character relationships with edges colored based on sentiment analysis.
     
@@ -451,11 +456,13 @@ def plot_sentiment_relations(pair_counts: dict, dict_names_id: dict, pairs_to_in
     cax = fig.add_axes([0.2, 0.05, 0.6, 0.02])  # [left, bottom, width, height]
 
     sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
-    sm.set_array([])  
+    sm.set_array([])
     cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
     cbar.set_ticks([])
-    cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF', transform=cbar.ax.transAxes)
-    cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000', transform=cbar.ax.transAxes)
+    cbar.ax.text(0, 1.5, 'Negative Relationship', va='bottom', ha='left', fontsize=10, color='#0000FF',
+                 transform=cbar.ax.transAxes)
+    cbar.ax.text(1, 1.5, 'Positive Relationship', va='bottom', ha='right', fontsize=10, color='#FF0000',
+                 transform=cbar.ax.transAxes)
 
     ax.set_title(f"Sentiment Relations Plot - Model: {model}", fontsize=12, fontweight='bold')
 
@@ -605,6 +612,7 @@ def evaluate_model_against_experts(experts_tagging: dict, model_results, toleran
     accuracy = correct_predictions / len(experts_tagging)
     return accuracy
 
+
 def convert_dict_to_communities(partition: dict) -> list:
     """
     Converts a partition dictionary into a list of communities.
@@ -626,6 +634,7 @@ def convert_dict_to_communities(partition: dict) -> list:
 
     return communities
 
+
 def eval_community_detection(G: nx.Graph, partition: dict):
     """
     Evaluates the quality of community detection on a graph.
@@ -639,7 +648,6 @@ def eval_community_detection(G: nx.Graph, partition: dict):
     """
     communities = convert_dict_to_communities(partition)
     return partition_quality(G, communities)
-
 
 
 def evaluate_model_precision_recall_f1(experts_tagging: dict, model_results: dict) -> dict:
@@ -686,6 +694,7 @@ def save_pair_counts(pair_counts: dict, path_pair_counts: str) -> None:
     """
     with open(path_pair_counts, "wb") as f:
         pickle.dump(pair_counts, f)
+
 
 def print_model_evaluation(model: str, model_results: dict) -> None:
     """
@@ -739,7 +748,6 @@ def print_model_evaluation(model: str, model_results: dict) -> None:
     print(f"F1 Score: {metrics['f1']}")
 
 
-
 def get_pair_counts_from_pickle(path_pair_counts: str) -> dict:
     """
     Loads pair counts from a pickle file.
@@ -782,7 +790,8 @@ def get_dict_names_id_from_pickle(path_names_id: str) -> dict:
     return dict_names_id
 
 
-def save_pair_sentences(pair_sentences: dict, set_sentences: set, path_pair_sentences: str, path_set_sentences: str) -> None:
+def save_pair_sentences(pair_sentences: dict, set_sentences: set, path_pair_sentences: str,
+                        path_set_sentences: str) -> None:
     """
     Saves pair sentences and set sentences to pickle files.
     
@@ -817,16 +826,15 @@ def get_pair_sentences_from_pickle(path_pair_sentences: str, path_set_sentences:
 
 
 def main(paths) -> None:
-    # # todo: remove the pickle usage in the future
     df_sentences = pd.read_csv(paths["sentences"])
-    # df_characters = pd.read_csv(paths["characters"])
-    # dict_names_id = create_dict_names_id(df_characters)
-    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    # save_dict_names_id(dict_names_id, paths["names_id"])
-    # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    # save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
-    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    # save_pair_counts(pair_counts, paths["pair_counts"])
+    df_characters = pd.read_csv(paths["characters"])
+    dict_names_id = create_dict_names_id(df_characters)
+    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    save_dict_names_id(dict_names_id, paths["names_id"])
+    pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
+    save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
+    pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    save_pair_counts(pair_counts, paths["pair_counts"])
 
     # get data from the pickle files:
     dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
@@ -834,22 +842,24 @@ def main(paths) -> None:
     pair_sentences, set_sentences = get_pair_sentences_from_pickle(paths["pair_sentences"], paths["set_sentences"])
 
     # plots that represent the character relationships:
-    # plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
-    # G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
-    # plot_louvain_communities(G, pos, resolution=1)
-    # plot_leiden_communities(G, pos, resolution=1)
+    plot_simple_connections(pair_counts, dict_names_id, threshold_count=10)
+    G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
+    plot_louvain_communities(G, pos, resolution=1.7)
+    plot_leiden_communities(G, pos, resolution=1.7)
 
     # run sentiment analysis on the sentences:
-    # model = "cardiffnlp/twitter-roberta-base-sentiment"
-    # indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
-    # model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250,
-    #                         model=model)
-    # print_model_evaluation(model, model_results)
+    model = "cardiffnlp/twitter-roberta-base-sentiment"
+    indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
+    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
+                                             threshold_count=250,
+                                             model=model)
+    print_model_evaluation(model, model_results)
 
-    model ="TextBlob"
+    model = "TextBlob"
     indices_to_semantics = analyze_sentiment_textblob(set_sentences, df_sentences)
-    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics, threshold_count=250,
-                            model=model)
+    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
+                                             threshold_count=250,
+                                             model=model)
     print_model_evaluation(model, model_results)
 
 
