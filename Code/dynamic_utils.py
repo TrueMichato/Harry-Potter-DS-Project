@@ -1,14 +1,11 @@
-
-
-# Basic imports and settings for working with data
-import numpy as np
-import pandas as pd
-
 # Imports and settings for plotting of graphs
 import plotly.io as pio
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
+import imageio
+import pathlib
+import tqdm
 
 pio.templates["custom"] = go.layout.Template(
     layout=go.Layout(
@@ -42,6 +39,19 @@ class AnimationButtons():
     @staticmethod
     def speed_up(frame_duration = 500, transition_duration = 0):
         return dict(label="2x Speed", method="animate", args=
+                    [None, {"frame": {"duration": frame_duration, "redraw": True},
+                            "fromcurrent": True, 
+                            "transition": {"duration": transition_duration, "easing": "linear"}}])
+    @staticmethod
+    def speed_up2(frame_duration = 250, transition_duration = 0):
+        return dict(label="4x Speed", method="animate", args=
+                    [None, {"frame": {"duration": frame_duration, "redraw": True},
+                            "fromcurrent": True, 
+                            "transition": {"duration": transition_duration, "easing": "linear"}}])
+    
+    @staticmethod
+    def speed_up3(frame_duration = 100, transition_duration = 0):
+        return dict(label="8x Speed", method="animate", args=
                     [None, {"frame": {"duration": frame_duration, "redraw": True},
                             "fromcurrent": True, 
                             "transition": {"duration": transition_duration, "easing": "linear"}}])
@@ -83,18 +93,16 @@ custom = [[0.0, "rgb(165,0,38)"],
           [0.8888888888888888, "rgb(69,117,180)"],
           [1.0, "rgb(49,54,149)"]]
 
-class_symbols = np.array(["circle", "x", "diamond"])
-class_colors = lambda n: [custom[i] for i in np.linspace(0, len(custom)-1, n).astype(int)]
-
-def decision_surface(predict, xrange, yrange, density=120, dotted=False, colorscale=custom, showscale=True):
-    xrange, yrange = np.linspace(*xrange, density), np.linspace(*yrange, density)
-    xx, yy = np.meshgrid(xrange, yrange)
-    pred = predict(np.c_[xx.ravel(), yy.ravel()])
-
-    if dotted:
-        return go.Scatter(x=xx.ravel(), y=yy.ravel(), opacity=1, mode="markers", marker=dict(color=pred, size=1, colorscale=colorscale, reversescale=False), hoverinfo="skip", showlegend=False)
-    return go.Contour(x=xrange, y=yrange, z=pred.reshape(xx.shape), colorscale=colorscale, reversescale=False, opacity=.7, connectgaps=True, hoverinfo="skip", showlegend=False, showscale=showscale)
-
+def frames_to_gif(frames, filename) -> None:
+    print(f"Creating gif: {filename}")
+    images = []
+    for i, frame in tqdm.tqdm(enumerate(frames)):
+        fig = go.Figure(data=frame["data"], layout=frame["layout"])
+        name = f"{filename.split('.')[0]}_{i}.png"
+        fig.write_image(name, format='png', engine='kaleido')
+        images.append(imageio.v2.imread(name))
+        pathlib.Path(name).unlink()
+    imageio.mimsave(filename, images, duration=2)
 
    
 def animation_to_gif(fig, filename, frame_duration=100, width=1200, height=800):
@@ -107,64 +115,3 @@ def animation_to_gif(fig, filename, frame_duration=100, width=1200, height=800):
         return f_
 
     gif.save([plot(fig, i) for i in range(len(fig["frames"]))], filename, duration=frame_duration)
-
-
-
-def create_data_bagging_utils(d = 4, number_of_members = 1, n_samples = 1000):
-    
-    def sample_beta(limit1, limit2):
-        margin1 = limit1 + (limit2 - limit1)*0.45
-        margin2 = limit2 - (limit2 - limit1)*0.45
-        beta = np.random.uniform(margin1, margin2)
-        return beta
-
-  # Creates n samples
-    samples = np.random.uniform(size=(n_samples, 2))
-
-    samples_of_half = "samples_of_half"
-    x_1 = "x_1"; x_2 = "x_2"; y_1 = "y_1"; y_2 = "y_2"; tag = "tag"
-    list_of_array = {0: {samples_of_half : samples, x_1 : 0, x_2 : 1, y_1 : 0, y_2 : 1}}
-
-    for i in range(0, d):
-        built_list =  {}
-        for sample_curr_i, sample_curr in enumerate(list_of_array.values()):
-      # Choose if we want to split x axis or y axis
-            dim_half = np.random.choice([0,1])
-
-            dots_coords = sample_curr[samples_of_half]
-            if (dim_half == 0):
-                beta = sample_beta(sample_curr[x_1], sample_curr[x_2])
-                built_list[sample_curr_i*2] = {samples_of_half: dots_coords[dots_coords[:,0] <= beta],
-                                       x_1 : sample_curr[x_1],
-                                       x_2 : beta,
-                                       y_1 : sample_curr[y_1],
-                                       y_2 : sample_curr[y_2],
-                                       tag : np.random.choice([0, 1]).astype(int)}
-
-                built_list[sample_curr_i*2 + 1] = {samples_of_half: dots_coords[dots_coords[:,0] > beta],
-                                       x_1 : beta,
-                                       x_2 : sample_curr[x_2],
-                                       y_1 : sample_curr[y_1],
-                                       y_2 : sample_curr[y_2],
-                                       tag : np.random.choice([0, 1]).astype(int)}
-            else:
-                beta = sample_beta(sample_curr[y_1], sample_curr[y_2])
-                built_list[sample_curr_i*2] = {samples_of_half: dots_coords[dots_coords[:,1] <= beta],
-                                       x_1 : sample_curr[x_1],
-                                       x_2 : sample_curr[x_2],
-                                       y_1 : sample_curr[y_1],
-                                       y_2 : beta,
-                                       tag : np.random.choice([0, 1]).astype(int)}
-
-                built_list[sample_curr_i*2 + 1] = {samples_of_half: dots_coords[dots_coords[:,1] > beta],
-                                       x_1 : sample_curr[x_1],
-                                       x_2 : sample_curr[x_2],
-                                       y_1 : beta,
-                                       y_2 : sample_curr[y_2],
-                                       tag : np.random.choice([0, 1]).astype(int)}
-
-
-        list_of_array =  built_list
-    samples = np.vstack([samples_["samples_of_half"] for samples_ in built_list.values()])
-    tags =  np.hstack([np.repeat(samples_["tag"], samples_["samples_of_half"].shape[0]) for samples_ in built_list.values()])
-    return samples, tags

@@ -9,7 +9,6 @@ def resolve_coreferences(chapter_text: str) -> str:
     doc = nlp(chapter_text)
     text_broken = [token.text for token in doc]
 
-    # Create a mapping from pronouns to resolved mentions
     for chain in doc._.coref_chains:
         for mention in chain:
             if len(mention) > 1:
@@ -82,7 +81,6 @@ def solve_long_name_issue(text: str, names: list) -> str:
     for name in names:
         if len(name.split(" ")) >= 2:
             new_name = "__".join(name.split(" "))
-            # print(f"{name=} -> {new_name=}")
             text = re.sub(rf"\b{name}\b", new_name, text)
     return text
 
@@ -156,32 +154,6 @@ def fix_spacing(text: str, names: list) -> str:
         )
     return text
 
-
-def fix_unique_names() -> None:
-    df_characters = pd.read_csv("Data/character_names.csv")
-    p_name = df_characters["Name"].apply(lambda x: x.split(" ")[0])
-
-    unique_mask = p_name.duplicated(keep=False) == False
-
-    df_characters.loc[unique_mask, "Other Names"] = (
-        df_characters.loc[unique_mask, "Other Names"].fillna("")
-        + df_characters.loc[unique_mask, "Other Names"].apply(
-            lambda x: ", " if x else ""
-        )
-        + p_name[unique_mask]
-    )
-
-    # Remove leading/trailing whitespace and commas
-    df_characters["Other Names"] = df_characters["Other Names"].str.strip(", ")
-    df_characters["Other Names"] = df_characters["Other Names"].str.replace(" , ", ", ")
-    df_characters["Other Names"] = df_characters["Other Names"].fillna("")
-    df_characters["Other Names"] = (
-        df_characters["Other Names"].str.split(", ").apply(lambda x: ", ".join(set(x)))
-    )
-
-    df_characters.to_csv("Data/character_names.csv", index=False)
-
-
 def get_character_names() -> set:
     df_characters = pd.read_csv("Data/character_names.csv")
 
@@ -210,13 +182,6 @@ def create_preprocessed_data() -> None:
         ),
         axis=1,
     )
-    ### get chapter name using a regex - dropped because data was inconsistent ###
-    #  book_texts["chapter name"] = book_texts["text"].str.extract(r'^([A-Z ]+)\s\s')
-    # # make chapter name a string
-    # book_texts["chapter name"] = book_texts["chapter name"].apply(lambda x: str(x))
-    # book_texts["text"] = book_texts.apply(lambda row: row['text'].replace(row['chapter name'], '').replace('  ', ' '), axis=1)
-
-    # split text to sentences
     book_texts["sentences"] = book_texts["text"].apply(lambda x: tk.sent_tokenize(x))
     print(book_texts.head(15))
 
@@ -241,9 +206,6 @@ def create_sentences_data(fix_text: bool = False) -> None:
         lambda x: tk.sent_tokenize(x)
     )
 
-    # preprocessed_data.to_csv("Data/harry_potter_books_preprocessed.csv", index=False)
-
-    # create a list of all sentences, without book or chapter affiliation
     all_sentences = []
     for index, row in preprocessed_data.iterrows():
         book = row['book']

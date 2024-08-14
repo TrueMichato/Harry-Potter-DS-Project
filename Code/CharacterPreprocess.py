@@ -3,20 +3,41 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-# Load the CSV file
+
+def fix_unique_names() -> None:
+    df_characters = pd.read_csv("Data/character_names.csv")
+    p_name = df_characters["Name"].apply(lambda x: x.split(" ")[0])
+
+    unique_mask = p_name.duplicated(keep=False) == False
+
+    df_characters.loc[unique_mask, "Other Names"] = (
+        df_characters.loc[unique_mask, "Other Names"].fillna("")
+        + df_characters.loc[unique_mask, "Other Names"].apply(
+            lambda x: ", " if x else ""
+        )
+        + p_name[unique_mask]
+    )
+
+    df_characters["Other Names"] = df_characters["Other Names"].str.strip(", ")
+    df_characters["Other Names"] = df_characters["Other Names"].str.replace(" , ", ", ")
+    df_characters["Other Names"] = df_characters["Other Names"].fillna("")
+    df_characters["Other Names"] = (
+        df_characters["Other Names"].str.split(", ").apply(lambda x: ", ".join(set(x)))
+    )
+
+    df_characters.to_csv("Data/character_names.csv", index=False)
+
+
 df = pd.read_csv('..\Data\HPCharactersData.csv')
 
-# Function to extract 'Other Names' from the provided URL
-def get_other_names(url):
+def get_other_names(url) -> str:
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Check if the request was successful
+        response.raise_for_status()  
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        # Find the element with the itemprop attribute
         other_names_element = soup.find(attrs={"itemprop": "alternateName"})
 
-        # Extract the text from the element if it exists
         if other_names_element:
             return other_names_element.get_text(strip=True)
         else:
@@ -25,40 +46,23 @@ def get_other_names(url):
         print(f"Error fetching data from {url}: {e}")
         return ''
 
-# Apply the function to the 'Link' column and create a new column 'Other Names'
 df['Other Names'] = df['Link'].apply(get_other_names)
 
 
-
-
-# Function to process the 'Other Names' column
 def process_other_names(text):
-    # Ensure the input is a string
     if isinstance(text, str):
-        # Remove any text inside parentheses including the parentheses
         text = re.sub(r'\(.*?\)', '', text)
-
-        # Remove all quotes
         text = re.sub(r'["\']', '', text)
-
-        # Replace semicolons with commas
         text = re.sub(r';', ',', text)
-
-        # Find all remaining text that could be names separated by commas
         names = re.split(r',\s*', text)
 
-        # Clean up extra whitespace and remove any empty entries
         cleaned_names = [name.strip() for name in names if name.strip()]
 
-        # Join the cleaned names with a comma
         return ', '.join(cleaned_names)
 
-
-# Apply the function to the 'Other Names' column
 df['Other Names'] = df['Other Names'].apply(process_other_names)
 
 
 df['Id'] = df.index
 
-# Save the DataFrame back to a CSV file
 df.to_csv('character_names.csv', index=False)
