@@ -364,7 +364,9 @@ def plot_leiden_communities(G: nx.Graph, pos: dict, colormap_name: str = 'tab10'
     Returns:
         dict: A dictionary mapping nodes to their corresponding communities.
     """
-    G_ig = cdlib.nx_to_igraph(G)
+
+    edges = [(u, v, float(data['weight'])) for u, v, data in G.edges(data=True)]
+    G_ig = ig.Graph.TupleList(edges, directed=False, weights=True)
 
     partition = la.find_partition(G_ig, la.RBConfigurationVertexPartition, weights=G_ig.es['weight'],
                                   resolution_parameter=resolution)
@@ -737,7 +739,9 @@ def print_model_evaluation(model: str, model_results: dict) -> None:
         ('Dolores Umbridge', 'Harry Potter'): -1,
         ('Percy Weasley', 'Ron Weasley'): -0.5,
         ('Bill Weasley', 'Ron Weasley'): 1,
-        ('Draco Malfoy', 'Harry Potter'): -1
+        ('Draco Malfoy', 'Harry Potter'): -1,
+        ("Harry Potter", "Lord Voldemort"): -1,
+        ("Albus Dumbledore", "Lord Voldemort"): -1
     }
 
     accuracy = calc_sentiment_accuracy(experts_tagging, model_results)
@@ -829,14 +833,14 @@ def get_pair_sentences_from_pickle(path_pair_sentences: str, path_set_sentences:
 
 def main(paths) -> None:
     df_sentences = pd.read_csv(paths["sentences"])
-    # df_characters = pd.read_csv(paths["characters"])
-    # dict_names_id = create_dict_names_id(df_characters)
-    # dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
-    # save_dict_names_id(dict_names_id, paths["names_id"])
-    # pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
-    # save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
-    # pair_counts = create_dict_connections(df_sentences, dict_names_id)
-    # save_pair_counts(pair_counts, paths["pair_counts"])
+    df_characters = pd.read_csv(paths["characters"])
+    dict_names_id = create_dict_names_id(df_characters)
+    dict_names_id = remove_characters_below_threshold(dict_names_id, df_sentences, threshold=16)
+    save_dict_names_id(dict_names_id, paths["names_id"])
+    pair_sentences, set_sentences = create_pair_sentences(df_sentences, dict_names_id)
+    save_pair_sentences(pair_sentences, set_sentences, paths["pair_sentences"], paths["set_sentences"])
+    pair_counts = create_dict_connections(df_sentences, dict_names_id)
+    save_pair_counts(pair_counts, paths["pair_counts"])
 
     # get data from the pickle files:
     dict_names_id = get_dict_names_id_from_pickle(paths["names_id"])
@@ -848,26 +852,26 @@ def main(paths) -> None:
     G, pos = plot_page_rank(pair_counts, dict_names_id, threshold_count=30)
     partition = plot_louvain_communities(G, pos, resolution=1.7)
     node_communities = plot_leiden_communities(G, pos, resolution=1.7)
-
-    # run sentiment analysis on the sentences:
-    # model = "cardiffnlp/twitter-roberta-base-sentiment"
-    # indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
-    # model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
-    #                                          threshold_count=250,
-    #                                          model=model)
-    # print_model_evaluation(model, model_results)
-    #
-    # model = "TextBlob"
-    # indices_to_semantics = analyze_sentiment_textblob(set_sentences, df_sentences)
-    # model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
-    #                                          threshold_count=250,
-    #                                          model=model)
-    # print_model_evaluation(model, model_results)
     coverage_louvain, performance_louvain = eval_community_detection(G, partition)
     coverage_leiden, performance_leiden = eval_community_detection(G, node_communities)
-    print(
-        "For Louvain's partition the coverage is " + coverage_louvain + " and the performance is " + performance_louvain)
-    print("For Leiden's partition the coverage is " + coverage_leiden + " and the performance is " + performance_leiden)
+    print(f"For Louvain's partition the coverage is {coverage_louvain} and the performance is {performance_louvain}")
+    print(f"For Leiden's partition the coverage is {coverage_leiden} and the performance is {coverage_leiden}")
+
+
+    # run sentiment analysis on the sentences:
+    model = "cardiffnlp/twitter-roberta-base-sentiment"
+    indices_to_semantics = analyze_sentiment_advanced(set_sentences, df_sentences, model)
+    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
+                                             threshold_count=250,
+                                             model=model)
+    print_model_evaluation(model, model_results)
+
+    model = "TextBlob"
+    indices_to_semantics = analyze_sentiment_textblob(set_sentences, df_sentences)
+    model_results = plot_sentiment_relations(pair_counts, dict_names_id, pair_sentences, indices_to_semantics,
+                                             threshold_count=250,
+                                             model=model)
+    print_model_evaluation(model, model_results)
 
 
 if __name__ == "__main__":
