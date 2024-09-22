@@ -108,3 +108,9 @@ wasabi==0.10.1
 weasel==0.4.1
 wrapt==1.16.0
 zipp==3.19.2
+datasets==2.20.0
+gif==23.3.0
+imageio==2.35.0
+leidenalg==0.10.2
+beautifulsoup4==4.12.3
+textblob==0.18.0.post0

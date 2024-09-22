@@ -230,7 +230,7 @@ def dynamic_pagerank_plot(pair_sentences: dict, dict_names_id: dict) -> None:
                 continue
             else:
                 pos_dict_meta[node] = pos
-        if i % 10 == 0:
+        if i % 20 == 0:
             edge_trace = get_edges(G, pos_dict_meta)
             node_trace = get_nodes(G, pos_dict_meta)
 
@@ -287,7 +287,7 @@ def dynamic_pagerank_plot(pair_sentences: dict, dict_names_id: dict) -> None:
                 frames=frames
             )
     final_fig.show()
-    frames_to_gif(frames, f"images/dynamic_relationship_graph_all_books - 10 sample.gif")
+    frames_to_gif(frames, f"images/dynamic_relationship_graph_all_books - 19 sample.gif")
     
 
 
